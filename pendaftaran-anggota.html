@@ -9,151 +9,119 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
-<body class="bg-slate-50 min-h-screen p-4">
+<body class="bg-slate-50 p-4">
 
-    <div class="max-w-4xl mx-auto">
-        <div class="bg-indigo-600 text-white p-8 rounded-[2.5rem] shadow-xl mb-6 border-b-8 border-indigo-800">
-            <h1 class="text-2xl font-black uppercase italic leading-none text-center">Registrasi Anggota 👤</h1>
-            <p class="text-center text-[10px] font-bold mt-2 opacity-70 uppercase tracking-widest">Satu Kartu: Kantin & Perpustakaan</p>
+    <div class="max-w-xl mx-auto">
+        <div class="bg-indigo-600 text-white p-6 rounded-3xl shadow-lg mb-6 text-center">
+            <h1 class="text-xl font-black uppercase">Registrasi Anggota 👤</h1>
+            <p class="text-[10px] opacity-70 tracking-widest uppercase">E-Perpus Integrated System</p>
         </div>
 
-        <div class="bg-white p-6 rounded-[2.5rem] shadow-sm mb-8 border border-indigo-100">
-            <div id="scannerArea" class="hidden mb-4 rounded-2xl overflow-hidden border-4 border-indigo-50 bg-black">
-                <div id="reader" style="width: 100%;"></div>
-                <button onclick="tutupScanner()" class="w-full bg-red-500 text-white py-3 font-bold text-[10px] uppercase">Batal & Tutup Kamera</button>
-            </div>
+        <div id="scannerArea" class="hidden mb-4 rounded-3xl overflow-hidden border-4 border-indigo-600 bg-black">
+            <div id="reader" style="width: 100%;"></div>
+            <button onclick="tutupScanner()" class="w-full bg-red-600 text-white py-3 font-bold uppercase text-xs">Batal Scan</button>
+        </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+            <div class="space-y-4">
                 <div class="relative">
-                    <input type="text" id="idSiswa" placeholder="SCAN KARTU DISINI" class="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none focus:ring-2 ring-indigo-500">
-                    <button onclick="bukaScanner()" class="absolute right-2 top-2 bg-indigo-500 text-white p-2 rounded-xl text-xs font-black animate-pulse shadow-md">SCAN</button>
+                    <input type="text" id="idSiswa" placeholder="SCAN ID KARTU..." class="w-full p-4 bg-slate-100 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-indigo-500">
+                    <button onclick="bukaScanner()" class="absolute right-2 top-2 bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold text-xs">SCAN 📷</button>
                 </div>
-                <input type="text" id="namaSiswa" placeholder="NAMA (AUTO-FILL)" class="p-4 bg-slate-50 rounded-2xl font-bold outline-none focus:ring-2 ring-indigo-500 uppercase">
-                <input type="text" id="kelasSiswa" placeholder="KELAS (AUTO-FILL)" class="p-4 bg-slate-50 rounded-2xl font-bold outline-none focus:ring-2 ring-indigo-500 uppercase">
+                <input type="text" id="namaSiswa" placeholder="NAMA SISWA" class="w-full p-4 bg-slate-50 rounded-2xl font-bold border-2 border-slate-100 uppercase">
+                <input type="text" id="kelasSiswa" placeholder="KELAS" class="w-full p-4 bg-slate-50 rounded-2xl font-bold border-2 border-slate-100 uppercase">
             </div>
             
-            <button onclick="simpanSiswa()" class="w-full mt-4 bg-emerald-500 text-white font-black py-4 rounded-2xl hover:bg-emerald-600 transition-all uppercase text-xs tracking-widest shadow-lg">
-                Konfirmasi Jadi Anggota Perpus ✅
+            <button onclick="simpanSiswa()" class="w-full mt-6 bg-emerald-500 text-white font-black py-4 rounded-2xl shadow-md uppercase tracking-widest text-xs">
+                Simpan Anggota Baru ✅
             </button>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="listAnggota"></div>
+        <div id="listAnggota" class="mt-8 space-y-3"></div>
     </div>
 
     <script>
-        // === 1. CONFIG FIREBASE PERPUS (MILIK BAPAK) ===
-        const perpusConfig = {
+        // 1. CONFIG FIREBASE (PASTIKAN KUNCI SUDAH BENAR)
+        const configPerpus = {
             apiKey: "AIzaSyBXt0gEgczYD1jQ9OhNk5FGN8CePIFaSYw",
-            authDomain: "e-perpus-a652c.firebaseapp.com",
             databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "e-perpus-a652c",
-            storageBucket: "e-perpus-a652c.firebasestorage.app",
-            messagingSenderId: "494352876853",
-            appId: "1:494352876853:web:ec71a7eb444281e7fa387c"
+            projectId: "e-perpus-a652c"
         };
-        const appPerpus = firebase.initializeApp(perpusConfig, "perpus");
-        const dbPerpus = appPerpus.database();
+        
+        // Inisialisasi Tunggal (Satu saja agar tidak bentrok)
+        if (!firebase.apps.length) {
+            firebase.initializeApp(configPerpus);
+        }
+        const db = firebase.database();
 
-        // === 2. CONFIG FIREBASE KANTIN (SILAKAN LENGKAPI) ===
-        const kantinConfig = {
-            apiKey: "API_KEY_KANTIN_BAPAK", 
-            databaseURL: "DATABASE_URL_KANTIN_BAPAK", 
-            projectId: "PROJECT_ID_KANTIN_BAPAK" 
-        };
-        const appKantin = firebase.initializeApp(kantinConfig, "kantin");
-        const dbKantin = appKantin.database();
-
+        // 2. LOGIKA SCANNER (DIBUAT SEDERHANA AGAR TIDAK ERROR)
         let html5QrCode;
 
-        // --- FUNGSI SCANNER DENGAN PERINTAH TEGAS ---
-        async function bukaScanner() {
-            const area = document.getElementById('scannerArea');
-            area.classList.remove('hidden');
+        function bukaScanner() {
+            document.getElementById('scannerArea').classList.remove('hidden');
+            
+            // Inisialisasi baru setiap kali tombol ditekan
+            html5QrCode = new Html5Qrcode("reader");
+            
+            const config = { fps: 10, qrbox: 250 };
 
-            if (!html5QrCode) {
-                html5QrCode = new Html5Qrcode("reader");
-            }
-
-            // Meminta daftar kamera dan memaksa izin muncul
-            Html5Qrcode.getCameras().then(devices => {
-                if (devices && devices.length) {
-                    // Utamakan kamera belakang (biasanya ID terakhir)
-                    const cameraId = devices.length > 1 ? devices[devices.length - 1].id : devices[0].id;
-                    
-                    html5QrCode.start(
-                        cameraId, 
-                        { fps: 20, qrbox: { width: 250, height: 250 } },
-                        (id) => {
-                            cariDataKantin(id.trim());
-                            tutupScanner();
-                        },
-                        (err) => { /* mengabaikan error scanning kecil */ }
-                    ).catch(err => {
-                        alert("Kamera Error: " + err);
-                    });
-                } else {
-                    alert("Kamera tidak ditemukan!");
+            // Mencoba menyalakan kamera belakang
+            html5QrCode.start(
+                { facingMode: "environment" }, 
+                config, 
+                (id) => {
+                    document.getElementById('idSiswa').value = id;
+                    tutupScanner();
+                    // Bapak bisa tambahkan fungsi cari data kantin di sini nanti
                 }
-            }).catch(err => {
-                alert("Izin Kamera Ditolak Browser. Silakan klik ikon gembok di alamat web dan aktifkan izin kamera.");
+            ).catch(err => {
+                alert("Kamera tidak mau terbuka. Cek izin kamera di browser Bapak.");
+                tutupScanner();
             });
         }
 
         function tutupScanner() {
-            if (html5QrCode && html5QrCode.isScanning) {
+            if (html5QrCode) {
                 html5QrCode.stop().then(() => {
                     document.getElementById('scannerArea').classList.add('hidden');
-                }).catch(err => console.log("Gagal stop scanner"));
+                }).catch(() => {
+                    document.getElementById('scannerArea').classList.add('hidden');
+                });
             } else {
                 document.getElementById('scannerArea').classList.add('hidden');
             }
         }
 
-        function cariDataKantin(id) {
-            document.getElementById('idSiswa').value = id;
-            dbKantin.ref('kantin_users/' + id).once('value', snap => {
-                const data = snap.val();
-                if(data) {
-                    document.getElementById('namaSiswa').value = data.nama;
-                    document.getElementById('kelasSiswa').value = data.kelas || "-";
-                } else {
-                    alert("ID Scan OK, tapi Nama tidak ada di Kantin. Silakan ketik manual.");
-                }
-            });
-        }
-
+        // 3. SIMPAN DATA
         function simpanSiswa() {
             const id = document.getElementById('idSiswa').value.trim();
             const nama = document.getElementById('namaSiswa').value.trim().toUpperCase();
             const kelas = document.getElementById('kelasSiswa').value.trim().toUpperCase();
 
             if(id && nama) {
-                dbPerpus.ref('anggota_perpus/' + id).set({
+                db.ref('anggota_perpus/' + id).set({
                     id, nama, kelas,
-                    status: "AKTIF",
-                    total_pinjam: 0,
                     tgl_daftar: new Date().toLocaleDateString('id-ID')
                 }).then(() => {
-                    alert("✅ Berhasil Didaftarkan!");
+                    alert("Berhasil!");
                     location.reload();
                 });
             } else { alert("Data belum lengkap!"); }
         }
 
-        // Tampil Daftar Anggota
-        dbPerpus.ref('anggota_perpus').on('value', snap => {
+        // 4. TAMPIL DATA
+        db.ref('anggota_perpus').on('value', snap => {
             const container = document.getElementById('listAnggota');
             container.innerHTML = "";
             snap.forEach(sSnap => {
                 const s = sSnap.val();
                 container.innerHTML += `
-                    <div class="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex items-center justify-between">
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center">
                         <div>
-                            <p class="text-[8px] font-black text-indigo-500 uppercase">ID: ${s.id}</p>
-                            <h3 class="font-black text-slate-800 uppercase text-xs">${s.nama}</h3>
-                            <p class="text-[9px] font-bold text-slate-400">KELAS ${s.kelas}</p>
+                            <p class="text-[8px] font-bold text-indigo-500">ID: ${s.id}</p>
+                            <h3 class="font-black text-xs uppercase text-slate-800">${s.nama}</h3>
                         </div>
-                        <button onclick="if(confirm('Hapus?')) dbPerpus.ref('anggota_perpus/${s.id}').remove()" class="text-red-300 hover:text-red-500">🗑️</button>
+                        <button onclick="if(confirm('Hapus?')) db.ref('anggota_perpus/${s.id}').remove()" class="text-red-400 text-xs">🗑️</button>
                     </div>`;
             });
         });
