@@ -3,164 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sirkulasi Perpus - PINJAM & KEMBALI</title>
+    <title>SIRKULASI E-PERPUS</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
-<body class="bg-slate-100 min-h-screen font-sans">
+<body class="bg-slate-50 font-sans min-h-screen">
 
-    <div class="max-w-4xl mx-auto p-4">
-        <div class="bg-indigo-700 text-white p-6 rounded-[2.5rem] shadow-xl mb-6 flex justify-between items-center border-b-8 border-indigo-900">
+    <div class="max-w-5xl mx-auto p-4 md:p-8">
+        <div class="bg-indigo-900 text-white p-8 rounded-[3rem] shadow-2xl mb-8 flex justify-between items-center border-b-8 border-orange-500">
             <div>
-                <h1 class="text-xl font-black uppercase italic italic">Sirkulasi Perpus 🔄</h1>
-                <p class="text-[9px] font-bold opacity-70 uppercase tracking-widest">Pinjam & Pengembalian Buku</p>
+                <h1 class="text-2xl font-black uppercase tracking-tighter italic">Sirkulasi Perpus 🔄</h1>
+                <p class="text-[10px] font-bold opacity-60 uppercase tracking-[0.3em]">Satu Kartu untuk Kantin & Perpus</p>
             </div>
-            <button onclick="location.reload()" class="bg-white/20 p-3 rounded-full hover:bg-white/30">🔄</button>
+            <button onclick="location.reload()" class="bg-white/10 hover:bg-white/20 p-4 rounded-3xl transition-all">
+                <span class="text-xl">🔄</span>
+            </button>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="space-y-4">
-                <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-indigo-50">
-                    <h2 class="text-[10px] font-black text-slate-400 uppercase mb-4 text-center">Scan Barcode (Siswa/Buku)</h2>
-                    <div id="reader" class="rounded-[2rem] overflow-hidden border-4 border-slate-100 mb-4"></div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            <div class="space-y-6">
+                <div class="bg-white p-6 rounded-[3rem] shadow-sm border border-slate-100">
+                    <div id="reader" class="rounded-[2rem] overflow-hidden border-4 border-slate-50 mb-6"></div>
                     
-                    <div class="flex gap-2">
-                        <input type="text" id="manualInput" placeholder="Ketik Manual..." class="flex-1 p-3 bg-slate-100 rounded-xl text-xs font-bold outline-none">
-                        <button onclick="prosesInput(document.getElementById('manualInput').value)" class="bg-indigo-600 text-white px-4 rounded-xl font-bold text-xs">OK</button>
+                    <div id="displayStatus" class="space-y-3">
+                        <div class="p-4 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 text-center">
+                            <p class="text-xs font-bold text-slate-400 uppercase italic">Menunggu Scan Kartu Kantin / Buku...</p>
+                        </div>
                     </div>
-                </div>
-
-                <div id="infoBox" class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-indigo-50 min-h-[150px]">
-                    <p class="text-center text-slate-300 text-xs mt-10 italic">Belum ada data yang di-scan</p>
                 </div>
             </div>
 
-            <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-indigo-50">
-                <h2 class="text-[10px] font-black text-indigo-500 uppercase mb-4">Peminjaman Berjalan</h2>
-                <div id="listPinjam" class="space-y-3 overflow-y-auto max-h-[500px]">
+            <div class="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="font-black text-indigo-900 uppercase text-sm tracking-widest">Pinjaman Berjalan</h2>
+                    <span id="countPinjam" class="bg-orange-500 text-white text-[10px] px-3 py-1 rounded-full font-black">0</span>
+                </div>
+                
+                <div id="listPinjam" class="space-y-4 max-h-[500px] overflow-y-auto pr-2">
                     </div>
             </div>
         </div>
     </div>
 
     <script>
-        // PAKAI CONFIG FIREBASE PERPUS BAPAK
+        // MASUKKAN CONFIG FIREBASE E-PERPUS BAPAK DI SINI
         const firebaseConfig = {
-            apiKey: "ISI_API_KEY_BAPAK",
-            authDomain: "ISI_AUTH_DOMAIN",
-            databaseURL: "ISI_DATABASE_URL",
-            projectId: "ISI_PROJECT_ID",
-            storageBucket: "ISI_STORAGE",
+            apiKey: "ISI_API_KEY_PERPUS",
+            authDomain: "ISI_AUTH_DOMAIN_PERPUS",
+            databaseURL: "ISI_DATABASE_URL_PERPUS",
+            projectId: "ISI_PROJECT_ID_PERPUS",
+            storageBucket: "ISI_STORAGE_PERPUS",
             messagingSenderId: "ISI_SENDER_ID",
             appId: "ISI_APP_ID"
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        let dataSiswa = null;
-        let dataBuku = null;
+        let currentSiswa = null;
+        let currentBuku = null;
         let scanner = new Html5Qrcode("reader");
 
-        // Jalankan Kamera
-        scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (decodedText) => {
-            prosesInput(decodedText.trim());
+        // Konfigurasi Kamera
+        scanner.start({ facingMode: "environment" }, { fps: 15, qrbox: 250 }, (id) => {
+            prosesScan(id.trim());
         });
 
-        async function prosesInput(id) {
-            // 1. Cek apakah ini ID Siswa
-            const siswaSnap = await db.ref('anggota_perpus/' + id).once('value');
-            if (siswaSnap.exists()) {
-                dataSiswa = siswaSnap.val();
-                updateDisplay();
+        async function prosesScan(id) {
+            // 1. Cek apakah ini ID Siswa (Kartu Kantin)
+            const snapSiswa = await db.ref('anggota_perpus/' + id).once('value');
+            if (snapSiswa.exists()) {
+                currentSiswa = snapSiswa.val();
+                renderInfo();
                 return;
             }
 
             // 2. Cek apakah ini Barcode Buku
-            const bukuSnap = await db.ref('koleksi_buku/' + id).once('value');
-            if (bukuSnap.exists()) {
-                dataBuku = bukuSnap.val();
-                updateDisplay();
+            const snapBuku = await db.ref('koleksi_buku/' + id).once('value');
+            if (snapBuku.exists()) {
+                currentBuku = snapBuku.val();
+                renderInfo();
                 return;
             }
-
-            alert("Data tidak dikenali sebagai Siswa atau Buku!");
+            
+            alert("Data tidak ditemukan! Pastikan Anggota/Buku sudah didaftarkan.");
         }
 
-        function updateDisplay() {
-            const box = document.getElementById('infoBox');
-            box.innerHTML = `
-                <div class="space-y-4">
-                    <div class="p-4 bg-amber-50 rounded-2xl border border-amber-100">
-                        <p class="text-[8px] font-black text-amber-600 uppercase tracking-widest">Peminjam:</p>
-                        <p class="font-black text-slate-800">${dataSiswa ? dataSiswa.nama : '<span class="text-slate-300">Belum Scan Kartu</span>'}</p>
+        function renderInfo() {
+            const container = document.getElementById('displayStatus');
+            container.innerHTML = `
+                <div class="space-y-3">
+                    <div class="p-4 ${currentSiswa ? 'bg-indigo-50 border-indigo-200' : 'bg-slate-50'} rounded-2xl border-2 transition-all">
+                        <p class="text-[8px] font-black text-indigo-400 uppercase">Peminjam (Kartu Kantin):</p>
+                        <p class="font-black text-indigo-900">${currentSiswa ? currentSiswa.nama : 'BELUM SCAN'}</p>
                     </div>
-                    <div class="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
-                        <p class="text-[8px] font-black text-indigo-600 uppercase tracking-widest">Buku:</p>
-                        <p class="font-black text-slate-800">${dataBuku ? dataBuku.judul : '<span class="text-slate-300">Belum Scan Buku</span>'}</p>
+                    <div class="p-4 ${currentBuku ? 'bg-orange-50 border-orange-200' : 'bg-slate-50'} rounded-2xl border-2 transition-all">
+                        <p class="text-[8px] font-black text-orange-400 uppercase">Buku Perpustakaan:</p>
+                        <p class="font-black text-orange-900">${currentBuku ? currentBuku.judul : 'BELUM SCAN'}</p>
                     </div>
-                    ${dataSiswa && dataBuku ? 
-                        `<button onclick="eksekusiPinjam()" class="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-lg uppercase text-xs">Proses Pinjam ✅</button>` 
-                        : ''}
+                    ${currentSiswa && currentBuku ? `
+                        <button onclick="pinjamBuku()" class="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-xl hover:bg-indigo-700 uppercase text-xs tracking-widest animate-pulse">
+                            Konfirmasi Pinjam ✅
+                        </button>
+                    ` : ''}
                 </div>
             `;
         }
 
-        function eksekusiPinjam() {
-            if (dataBuku.stok_tersedia <= 0) return alert("Maaf, stok buku ini sedang kosong!");
+        function pinjamBuku() {
+            if (currentBuku.stok_tersedia <= 0) return alert("Maaf, Buku sedang kosong di rak!");
 
-            const tglPinjam = new Date();
-            const tglKembali = new Date();
-            tglKembali.setDate(tglPinjam.getDate() + 7); // Durasi pinjam 7 hari
+            const tgl = new Date();
+            const tempo = new Date();
+            tempo.setDate(tgl.getDate() + 7); // Default pinjam 7 hari
 
-            const pinjamID = dataSiswa.id + "_" + dataBuku.isbn;
+            const refID = currentSiswa.id + "_" + currentBuku.isbn;
 
-            // 1. Simpan ke Peminjaman Aktif
-            db.ref('peminjaman_aktif/' + pinjamID).set({
-                idSiswa: dataSiswa.id,
-                namaSiswa: dataSiswa.nama,
-                isbn: dataBuku.isbn,
-                judulBuku: dataBuku.judul,
-                tglPinjam: tglPinjam.toLocaleDateString('id-ID'),
-                tglJatuhTempo: tglKembali.toLocaleDateString('id-ID')
+            db.ref('peminjaman_aktif/' + refID).set({
+                idSiswa: currentSiswa.id,
+                namaSiswa: currentSiswa.nama,
+                isbn: currentBuku.isbn,
+                judulBuku: currentBuku.judul,
+                tglPinjam: tgl.toLocaleDateString('id-ID'),
+                tglKembali: tempo.toLocaleDateString('id-ID')
+            }).then(() => {
+                // Update Stok Buku
+                db.ref('koleksi_buku/' + currentBuku.isbn + '/stok_tersedia').transaction(s => (s || 0) - 1);
+                // Update Statistik Siswa
+                db.ref('anggota_perpus/' + currentSiswa.id + '/total_pinjam').transaction(t => (t || 0) + 1);
+                
+                alert("Berhasil! Buku " + currentBuku.judul + " dipinjam oleh " + currentSiswa.nama);
+                location.reload();
             });
-
-            // 2. Kurangi Stok Buku
-            db.ref('koleksi_buku/' + dataBuku.isbn + '/stok_tersedia').transaction(s => (s || 0) - 1);
-
-            alert("Buku Berhasil Dipinjam!");
-            location.reload();
         }
 
-        // Tampilkan Pinjaman Aktif & Fitur Kembali
+        // Tampilkan List & Logika Pengembalian
         db.ref('peminjaman_aktif').on('value', snap => {
             const list = document.getElementById('listPinjam');
+            const count = document.getElementById('countPinjam');
             list.innerHTML = "";
+            let total = 0;
+
             snap.forEach(pSnap => {
+                total++;
                 const p = pSnap.val();
                 list.innerHTML += `
-                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h4 class="font-black text-[11px] text-slate-800 uppercase">${p.judulBuku}</h4>
-                                <p class="text-[9px] font-bold text-indigo-600 uppercase">Peminjam: ${p.namaSiswa}</p>
-                                <p class="text-[8px] text-slate-400 font-bold mt-1">Tempo: ${p.tglJatuhTempo}</p>
-                            </div>
-                            <button onclick="kembalikanBuku('${pSnap.key}', '${p.isbn}')" class="bg-emerald-500 text-white text-[8px] font-black px-3 py-2 rounded-lg uppercase">Kembali</button>
+                    <div class="bg-slate-50 p-5 rounded-[2rem] border border-slate-100 flex justify-between items-center group hover:bg-white hover:shadow-md transition-all">
+                        <div>
+                            <h4 class="font-black text-indigo-900 text-xs uppercase leading-tight">${p.judulBuku}</h4>
+                            <p class="text-[9px] font-bold text-orange-500 uppercase mt-1">${p.namaSiswa}</p>
+                            <p class="text-[8px] text-slate-400 font-bold">Tempo: ${p.tglKembali}</p>
                         </div>
+                        <button onclick="kembalikanBuku('${pSnap.key}', '${p.isbn}')" class="bg-emerald-100 text-emerald-600 hover:bg-emerald-600 hover:text-white p-3 rounded-2xl transition-all">
+                            ✔
+                        </button>
                     </div>
                 `;
             });
+            count.innerText = total;
         });
 
         function kembalikanBuku(key, isbn) {
-            if (confirm("Konfirmasi pengembalian buku?")) {
-                // 1. Hapus dari pinjaman aktif
+            if (confirm("Konfirmasi buku telah kembali ke rak?")) {
                 db.ref('peminjaman_aktif/' + key).remove();
-                // 2. Tambah stok buku kembali
                 db.ref('koleksi_buku/' + isbn + '/stok_tersedia').transaction(s => (s || 0) + 1);
-                alert("Buku telah dikembalikan!");
             }
         }
     </script>
