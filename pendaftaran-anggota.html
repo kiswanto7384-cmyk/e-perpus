@@ -3,144 +3,160 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daftar Anggota - E-Perpus</title>
+    <title>Pendaftaran Anggota - E-Perpus</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
-<body class="bg-slate-50 p-4">
+<body class="bg-slate-100 p-4 font-sans min-h-screen">
 
     <div class="max-w-xl mx-auto">
-        <div class="bg-indigo-600 text-white p-6 rounded-3xl shadow-lg mb-6 text-center">
-            <h1 class="text-xl font-black uppercase tracking-tighter">Registrasi Anggota 👤</h1>
-            <p class="text-[10px] opacity-70 tracking-widest uppercase">E-Perpus & Kantin Terintegrasi</p>
+        <div class="bg-indigo-900 text-white p-6 rounded-[2rem] shadow-xl mb-6 border-b-8 border-orange-500">
+            <h1 class="text-xl font-black uppercase italic">Manajemen Anggota 👥</h1>
+            <p class="text-[10px] font-bold opacity-60 uppercase tracking-widest">E-Perpus Integrated System</p>
         </div>
 
-        <div id="scannerArea" class="hidden mb-4 rounded-3xl overflow-hidden border-4 border-indigo-600 bg-black shadow-2xl">
-            <div id="reader" style="width: 100%;"></div>
-            <button onclick="tutupScanner()" class="w-full bg-red-600 text-white py-4 font-bold uppercase text-xs">Batal Scan</button>
-        </div>
-
-        <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200">
-            <div class="space-y-4">
-                <div class="relative">
-                    <input type="text" id="idSiswa" placeholder="SCAN ID KARTU..." class="w-full p-4 bg-slate-100 rounded-2xl font-black outline-none border-2 border-transparent focus:border-indigo-500 text-indigo-900">
-                    <button onclick="bukaScanner()" class="absolute right-2 top-2 bg-indigo-600 text-white px-5 py-2 rounded-xl font-bold text-xs shadow-md active:scale-95 transition-all">SCAN 📷</button>
-                </div>
-                <input type="text" id="namaSiswa" placeholder="NAMA SISWA (OTOMATIS)" class="w-full p-4 bg-slate-50 rounded-2xl font-bold border-2 border-slate-100 uppercase focus:bg-white transition-all">
-                <input type="text" id="kelasSiswa" placeholder="KELAS" class="w-full p-4 bg-slate-50 rounded-2xl font-bold border-2 border-slate-100 uppercase focus:bg-white transition-all">
-            </div>
-            
-            <button onclick="simpanSiswa()" class="w-full mt-6 bg-emerald-500 text-white font-black py-5 rounded-2xl shadow-lg shadow-emerald-100 uppercase tracking-[0.2em] text-xs hover:bg-emerald-600 transition-all">
-                Aktifkan Anggota Perpus ✅
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <button onclick="salinSemuaDariKantin()" class="bg-orange-500 hover:bg-orange-600 text-white p-4 rounded-3xl shadow-lg transition-all flex flex-col items-center justify-center border-b-4 border-orange-700">
+                <span class="text-2xl mb-1">📥</span>
+                <span class="text-[10px] font-black uppercase leading-tight">Impor Semua<br>Dari E-Kantin</span>
+            </button>
+            <button onclick="toggleManual()" class="bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-3xl shadow-lg transition-all flex flex-col items-center justify-center border-b-4 border-indigo-800">
+                <span class="text-2xl mb-1">📝</span>
+                <span class="text-[10px] font-black uppercase leading-tight">Pendaftaran<br>Manual / Scan</span>
             </button>
         </div>
 
-        <div id="listAnggota" class="mt-8 grid grid-cols-1 gap-3"></div>
+        <div id="scannerArea" class="hidden mb-4 rounded-[2rem] overflow-hidden border-4 border-indigo-600 bg-black">
+            <div id="reader" style="width: 100%;"></div>
+            <button onclick="tutupScanner()" class="w-full bg-red-600 text-white py-3 font-black uppercase text-xs">Tutup Kamera</button>
+        </div>
+
+        <div id="formManual" class="hidden bg-white p-6 rounded-[2.5rem] shadow-md border border-slate-200 mb-8 animate-all">
+            <h2 class="text-center font-black text-indigo-900 text-xs uppercase mb-4 tracking-widest">Input Anggota Baru</h2>
+            <div class="space-y-3">
+                <div class="relative">
+                    <input type="text" id="idSiswa" placeholder="ID KARTU / SCAN" class="w-full p-4 bg-slate-100 rounded-2xl font-black outline-none border-2 border-transparent focus:border-indigo-500">
+                    <button onclick="bukaScanner()" class="absolute right-2 top-2 bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold text-[10px]">SCAN 📷</button>
+                </div>
+                <input type="text" id="namaSiswa" placeholder="NAMA SISWA" class="w-full p-4 bg-slate-50 rounded-2xl font-bold border-2 border-slate-100 uppercase text-sm outline-none focus:border-indigo-400">
+                <input type="text" id="kelasSiswa" placeholder="KELAS" class="w-full p-4 bg-slate-50 rounded-2xl font-bold border-2 border-slate-100 uppercase text-sm outline-none focus:border-indigo-400">
+                <button onclick="simpanSiswa()" class="w-full bg-emerald-500 text-white font-black py-4 rounded-2xl shadow-md uppercase text-xs tracking-widest mt-2">Simpan Anggota ✅</button>
+            </div>
+        </div>
+
+        <div class="flex justify-between items-center px-4 mb-4">
+            <h3 class="font-black text-slate-400 text-[10px] uppercase tracking-widest">Anggota Terdaftar</h3>
+            <span id="countAnggota" class="bg-white text-indigo-900 text-[10px] font-black px-3 py-1 rounded-full shadow-sm">0</span>
+        </div>
+        <div id="listAnggota" class="space-y-3"></div>
     </div>
 
     <script>
-        // === 1. KONFIGURASI DUA DATABASE (DIISOLASI AGAR TIDAK BENTROK) ===
+        // --- CONFIG FIREBASE ---
         const perpusConfig = {
             apiKey: "AIzaSyBXt0gEgczYD1jQ9OhNk5FGN8CePIFaSYw",
             databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app",
             projectId: "e-perpus-a652c"
         };
-        const appPerpus = firebase.initializeApp(perpusConfig, "perpusApp");
-        const dbPerpus = appPerpus.database();
-
-        // MASUKKAN CONFIG KANTIN BAPAK DI SINI
+        // Masukkan Config Kantin Bapak di sini
         const kantinConfig = {
-            apiKey: "API_KEY_KANTIN_BAPAK",
-            databaseURL: "URL_DATABASE_KANTIN_BAPAK",
-            projectId: "PROJECT_ID_KANTIN_BAPAK"
+            apiKey: "API_KEY_KANTIN",
+            databaseURL: "URL_KANTIN_BAPAK",
+            projectId: "ID_KANTIN"
         };
-        const appKantin = firebase.initializeApp(kantinConfig, "kantinApp");
+
+        const appPerpus = firebase.initializeApp(perpusConfig, "perpus");
+        const appKantin = firebase.initializeApp(kantinConfig, "kantin");
+        const dbPerpus = appPerpus.database();
         const dbKantin = appKantin.database();
 
         let html5QrCode;
 
-        // === 2. LOGIKA KAMERA ===
-        function bukaScanner() {
-            document.getElementById('scannerArea').classList.remove('hidden');
-            html5QrCode = new Html5Qrcode("reader");
-            
-            html5QrCode.start(
-                { facingMode: "environment" }, 
-                { fps: 15, qrbox: 250 }, 
-                (id) => {
-                    document.getElementById('idSiswa').value = id.trim();
-                    cariDataKantin(id.trim()); // Langsung cari nama di database kantin
-                    tutupScanner();
+        // 1. SISTEM GENERATE OTOMATIS (SALIN SEMUA)
+        async function salinSemuaDariKantin() {
+            if(confirm("Apakah Bapak yakin ingin menarik semua data siswa dari E-Kantin menjadi anggota Perpus?")) {
+                const snapKantin = await dbKantin.ref('kantin_users').once('value');
+                if(snapKantin.exists()) {
+                    let jumlah = 0;
+                    snapKantin.forEach(child => {
+                        const data = child.val();
+                        dbPerpus.ref('anggota_perpus/' + child.key).set({
+                            id: child.key,
+                            nama: data.nama,
+                            kelas: data.kelas || "-",
+                            status: "AKTIF",
+                            total_pinjam: 0,
+                            tgl_daftar: new Date().toLocaleDateString('id-ID')
+                        });
+                        jumlah++;
+                    });
+                    alert("Selesai! " + jumlah + " siswa berhasil didaftarkan otomatis.");
+                } else {
+                    alert("Data di E-Kantin tidak ditemukan.");
                 }
-            ).catch(err => {
-                alert("Izin kamera diperlukan!");
-                tutupScanner();
-            });
-        }
-
-        function tutupScanner() {
-            if (html5QrCode) {
-                html5QrCode.stop().then(() => {
-                    document.getElementById('scannerArea').classList.add('hidden');
-                }).catch(() => {
-                    document.getElementById('scannerArea').classList.add('hidden');
-                });
-            } else {
-                document.getElementById('scannerArea').classList.add('hidden');
             }
         }
 
-        // === 3. LOGIKA TARIK DATA KANTIN ===
-        function cariDataKantin(id) {
-            // Kita arahkan ke 'kantin_users' atau path yang Bapak gunakan di aplikasi kantin
-            dbKantin.ref('kantin_users/' + id).once('value', snap => {
-                const data = snap.val();
-                if(data) {
-                    document.getElementById('namaSiswa').value = data.nama;
-                    document.getElementById('kelasSiswa').value = data.kelas || "-";
-                } else {
-                    alert("ID Scan OK! Tapi data tidak ada di Kantin. Silakan ketik manual.");
-                }
-            });
+        // 2. SISTEM MANUAL & SCAN
+        function toggleManual() {
+            const form = document.getElementById('formManual');
+            form.classList.toggle('hidden');
         }
 
-        // === 4. SIMPAN KE PERPUS ===
+        function bukaScanner() {
+            document.getElementById('scannerArea').classList.remove('hidden');
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start({ facingMode: "environment" }, { fps: 15, qrbox: 250 }, (id) => {
+                document.getElementById('idSiswa').value = id.trim();
+                tutupScanner();
+            }).catch(() => alert("Kamera Error"));
+        }
+
+        function tutupScanner() {
+            if(html5QrCode) html5QrCode.stop();
+            document.getElementById('scannerArea').classList.add('hidden');
+        }
+
         function simpanSiswa() {
             const id = document.getElementById('idSiswa').value.trim();
             const nama = document.getElementById('namaSiswa').value.trim().toUpperCase();
             const kelas = document.getElementById('kelasSiswa').value.trim().toUpperCase();
-
             if(id && nama) {
                 dbPerpus.ref('anggota_perpus/' + id).set({
                     id, nama, kelas,
-                    status: "AKTIF",
-                    total_pinjam: 0,
+                    status: "AKTIF", total_pinjam: 0,
                     tgl_daftar: new Date().toLocaleDateString('id-ID')
                 }).then(() => {
-                    alert("✅ Berhasil Menjadi Anggota Perpus!");
-                    location.reload();
+                    alert("Berhasil!");
+                    document.getElementById('idSiswa').value = "";
+                    document.getElementById('namaSiswa').value = "";
+                    document.getElementById('kelasSiswa').value = "";
                 });
-            } else { alert("Data belum lengkap!"); }
+            }
         }
 
-        // === 5. TAMPIL LIST ===
+        // TAMPILKAN LIST
         dbPerpus.ref('anggota_perpus').on('value', snap => {
-            const container = document.getElementById('listAnggota');
-            container.innerHTML = "";
+            const list = document.getElementById('listAnggota');
+            const count = document.getElementById('countAnggota');
+            list.innerHTML = "";
+            let total = 0;
             snap.forEach(sSnap => {
+                total++;
                 const s = sSnap.val();
-                container.innerHTML += `
-                    <div class="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex justify-between items-center group transition-all hover:border-indigo-300">
+                list.innerHTML += `
+                    <div class="bg-white p-4 rounded-3xl shadow-sm border border-slate-200 flex justify-between items-center">
                         <div>
-                            <p class="text-[7px] font-black text-indigo-500 uppercase">ID: ${s.id}</p>
-                            <h3 class="font-black text-xs uppercase text-slate-800">${s.nama}</h3>
-                            <p class="text-[9px] font-bold text-slate-400">KELAS ${s.kelas}</p>
+                            <p class="text-[7px] font-black text-indigo-500 uppercase leading-none">ID: ${s.id}</p>
+                            <h3 class="font-black text-[11px] uppercase text-slate-800 mt-1">${s.nama}</h3>
+                            <p class="text-[9px] font-bold text-slate-400 uppercase">${s.kelas}</p>
                         </div>
-                        <button onclick="if(confirm('Hapus anggota ini?')) dbPerpus.ref('anggota_perpus/${s.id}').remove()" class="text-slate-200 hover:text-red-500 p-2">🗑️</button>
+                        <button onclick="if(confirm('Hapus?')) dbPerpus.ref('anggota_perpus/${s.id}').remove()" class="bg-slate-50 p-2 rounded-xl text-slate-300 hover:text-red-500 transition-all">🗑️</button>
                     </div>`;
             });
+            count.innerText = total;
         });
     </script>
 </body>
