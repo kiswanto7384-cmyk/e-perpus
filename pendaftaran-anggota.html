@@ -26,7 +26,7 @@
             <div class="space-y-4">
                 <div class="relative">
                     <label class="text-[9px] font-black text-slate-400 uppercase ml-3">ID Kartu</label>
-                    <input type="text" id="idSiswa" placeholder="KLIK SCAN..." class="w-full p-4 bg-slate-100 rounded-3xl font-black outline-none border-2 border-transparent focus:border-indigo-500 text-indigo-900">
+                    <input type="text" id="idSiswa" placeholder="KLIK SCAN..." class="w-full p-4 bg-slate-100 rounded-2xl font-black outline-none border-2 border-transparent focus:border-indigo-500 text-indigo-900">
                     <button onclick="bukaScanner()" class="absolute right-2 top-7 bg-indigo-600 text-white px-5 py-2 rounded-2xl font-black text-xs hover:bg-indigo-700 active:scale-95 transition-all">SCAN 📷</button>
                 </div>
                 
@@ -50,9 +50,6 @@
     </div>
 
     <script>
-        // --- KONFIGURASI FIREBASE ---
-        // Karena GitHub Bapak menunjukkan Kantin & Perpus di project yang sama, 
-        // kita cukup pakai satu inisialisasi saja agar tidak bentrok.
         const firebaseConfig = {
             apiKey: "AIzaSyBXt0gEgczYD1jQ9OhNk5FGN8CePIFaSYw",
             authDomain: "e-perpus-a652c.firebaseapp.com",
@@ -72,9 +69,10 @@
             document.getElementById('scannerArea').classList.remove('hidden');
             html5QrCode = new Html5Qrcode("reader");
             html5QrCode.start({ facingMode: "environment" }, { fps: 15, qrbox: 250 }, (id) => {
-                document.getElementById('idSiswa').value = id.trim();
+                const scannedId = id.trim();
+                document.getElementById('idSiswa').value = scannedId;
                 tutupScanner();
-                cariDataKantin(id.trim()); // Jalankan fungsi cari data
+                cariDataKantin(scannedId); 
             }).catch(err => { alert("Kamera Error"); tutupScanner(); });
         }
 
@@ -86,23 +84,27 @@
             }
         }
 
-        // --- INI FUNGSI YANG BARU (SESUAI GITHUB BAPAK) ---
         function cariDataKantin(id) {
             console.log("Mencari data di path: users/" + id);
             
-            // Kita cari di folder 'users' (sesuai struktur E-Kantin Bapak)
             db.ref('users/' + id).once('value').then((snap) => {
                 const data = snap.val();
                 if(data) {
-                    // Isi form secara otomatis
                     document.getElementById('namaSiswa').value = data.nama || "";
                     document.getElementById('kelasSiswa').value = data.kelas || "-";
-                    console.log("Data ditemukan:", data);
                 } else {
-                    alert("ID terdeteksi, tapi tidak ada di database Kantin (folder 'users'). Silakan isi manual.");
+                    // JIKA GAGAL, KITA INTIP ISI FOLDER USERS UNTUK DIAGNOSA
+                    db.ref('users').limitToFirst(3).once('value').then((diagnosa) => {
+                        let sampleIds = [];
+                        diagnosa.forEach(c => { sampleIds.push(c.key) });
+                        
+                        alert("❌ ID [" + id + "] Tidak Ditemukan.\n\nContoh ID yang ada di database Bapak: \n" + 
+                              (sampleIds.length > 0 ? sampleIds.join(", ") : "Folder 'users' ternyata KOSONG!") + 
+                              "\n\nPastikan huruf besar/kecilnya sama persis.");
+                    });
                 }
             }).catch((error) => {
-                console.error("Error tarik data:", error);
+                alert("Error Koneksi: " + error.message);
             });
         }
 
@@ -112,13 +114,12 @@
             const kelas = document.getElementById('kelasSiswa').value.trim().toUpperCase();
 
             if(id && nama) {
-                // Simpan ke folder 'anggota_perpus' agar terpisah dari data kantin
                 db.ref('anggota_perpus/' + id).set({
                     id, nama, kelas,
                     tgl_daftar: new Date().toLocaleDateString('id-ID'),
                     status: "AKTIF"
                 }).then(() => {
-                    alert("✅ " + nama + " resmi jadi anggota perpus!");
+                    alert("✅ Berhasil Didaftarkan!");
                     document.getElementById('idSiswa').value = "";
                     document.getElementById('namaSiswa').value = "";
                     document.getElementById('kelasSiswa').value = "";
@@ -126,7 +127,6 @@
             } else { alert("Data belum lengkap!"); }
         }
 
-        // Tampilkan List Anggota
         db.ref('anggota_perpus').on('value', snap => {
             const container = document.getElementById('listAnggota');
             container.innerHTML = "";
