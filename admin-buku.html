@@ -11,7 +11,7 @@
 <body class="bg-slate-50 min-h-screen p-4">
 
     <div class="max-w-4xl mx-auto">
-        <div class="bg-orange-600 text-white p-8 rounded-[2.5rem] shadow-xl mb-6">
+        <div class="bg-orange-600 text-white p-8 rounded-[2.5rem] shadow-xl mb-6 border-b-8 border-orange-800">
             <h1 class="text-2xl font-black uppercase italic">E-Perpus: Katalog Buku 📚</h1>
             <p class="text-xs font-bold opacity-80 uppercase tracking-widest">Input Koleksi Buku Perpustakaan</p>
         </div>
@@ -45,35 +45,47 @@
     </div>
 
     <script>
-        // MASUKKAN CONFIG FIREBASE BARU BAPAK DI SINI
+        // CONFIG FIREBASE ASLI PROYEK E-PERPUS BAPAK
         const firebaseConfig = {
-            apiKey: "ISI_DENGAN_API_KEY_BARU",
-            authDomain: "ISI_DENGAN_AUTH_DOMAIN_BARU",
-            databaseURL: "ISI_DENGAN_DATABASE_URL_BARU",
-            projectId: "ISI_DENGAN_PROJECT_ID_BARU",
-            storageBucket: "ISI_DENGAN_STORAGE_BARU",
-            messagingSenderId: "ISI_NOMOR_SENDER",
-            appId: "ISI_APP_ID"
+            apiKey: "AIzaSyBXt0gEgczYD1jQ9OhNk5FGN8CePIFaSYw",
+            authDomain: "e-perpus-a652c.firebaseapp.com",
+            databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "e-perpus-a652c",
+            storageBucket: "e-perpus-a652c.firebasestorage.app",
+            messagingSenderId: "494352876853",
+            appId: "1:494352876853:web:ec71a7eb444281e7fa387c",
+            measurementId: "G-P459EVKKTV"
         };
-        firebase.initializeApp(firebaseConfig);
+        
+        // Inisialisasi Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
         const db = firebase.database();
 
         function simpanBuku() {
             const isbn = document.getElementById('isbn').value.trim();
             const judul = document.getElementById('judul').value.trim().toUpperCase();
             const penulis = document.getElementById('penulis').value.trim();
-            const stok = parseInt(document.getElementById('stok').value);
+            const stokValue = document.getElementById('stok').value;
+            const stok = parseInt(stokValue);
 
-            if(isbn && judul) {
+            if(isbn && judul && !isNaN(stok)) {
                 db.ref('koleksi_buku/' + isbn).set({
-                    isbn, judul, penulis, 
+                    isbn: isbn,
+                    judul: judul,
+                    penulis: penulis, 
                     stok_total: stok,
                     stok_tersedia: stok
                 }).then(() => {
                     alert("Buku Berhasil Terdaftar!");
                     document.querySelectorAll('input').forEach(i => i.value = "");
+                }).catch(err => {
+                    alert("Gagal simpan: " + err.message);
                 });
-            } else { alert("Minimal Kode & Judul diisi!"); }
+            } else { 
+                alert("Minimal Kode, Judul, dan Stok harus diisi dengan benar!"); 
+            }
         }
 
         // Tampilkan Data Real-Time
@@ -83,12 +95,12 @@
             snap.forEach(bukuSnap => {
                 const b = bukuSnap.val();
                 table.innerHTML += `
-                    <tr class="border-b border-slate-50">
+                    <tr class="border-b border-slate-50 hover:bg-slate-50">
                         <td class="p-4 font-black text-orange-600">${b.isbn}</td>
                         <td class="p-4 uppercase">${b.judul}</td>
                         <td class="p-4 text-center">${b.stok_tersedia} / ${b.stok_total}</td>
                         <td class="p-4 text-center">
-                            <button onclick="hapusBuku('${b.isbn}')" class="text-red-400 hover:text-red-600">🗑️</button>
+                            <button onclick="hapusBuku('${b.isbn}')" class="text-red-400 hover:text-red-600 transition-colors">🗑️ Hapus</button>
                         </td>
                     </tr>
                 `;
@@ -96,7 +108,9 @@
         });
 
         function hapusBuku(id) {
-            if(confirm("Hapus buku ini?")) db.ref('koleksi_buku/' + id).remove();
+            if(confirm("Hapus buku ini dari database?")) {
+                db.ref('koleksi_buku/' + id).remove();
+            }
         }
     </script>
 </body>
