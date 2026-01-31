@@ -26,13 +26,15 @@
             
             <div class="space-y-6">
                 <div class="bg-white p-6 rounded-[3rem] shadow-sm border border-slate-100">
-                    <div id="reader" class="rounded-[2rem] overflow-hidden border-4 border-slate-50 mb-6"></div>
+                    <div id="reader" class="rounded-[2rem] overflow-hidden border-4 border-slate-50 mb-6 bg-black shadow-inner"></div>
                     
                     <div id="displayStatus" class="space-y-3">
                         <div class="p-4 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 text-center">
                             <p class="text-xs font-bold text-slate-400 uppercase italic">Menunggu Scan Kartu Kantin / Buku...</p>
                         </div>
                     </div>
+                    
+                    <button onclick="mulaiKamera()" id="btnStart" class="hidden w-full mt-4 bg-indigo-500 text-white font-black py-3 rounded-2xl uppercase text-[10px]">Buka Kamera Manual 📷</button>
                 </div>
             </div>
 
@@ -57,27 +59,45 @@
             projectId: "e-perpus-a652c",
             storageBucket: "e-perpus-a652c.firebasestorage.app",
             messagingSenderId: "494352876853",
-            appId: "1:494352876853:web:ec71a7eb444281e7fa387c",
-            measurementId: "G-P459EVKKTV"
+            appId: "1:494352876853:web:ec71a7eb444281e7fa387c"
         };
 
-        // Inisialisasi
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
         let currentSiswa = null;
         let currentBuku = null;
-        let scanner = new Html5Qrcode("reader");
+        let html5QrCode;
 
-        // Jalankan Scanner
-        scanner.start({ facingMode: "environment" }, { fps: 15, qrbox: 250 }, (id) => {
-            prosesScan(id.trim());
-        });
+        // --- FUNGSI KAMERA PAKSA ---
+        async function mulaiKamera() {
+            if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+            
+            Html5Qrcode.getCameras().then(devices => {
+                if (devices && devices.length) {
+                    // Paksa pilih kamera belakang
+                    const cameraId = devices.length > 1 ? devices[devices.length - 1].id : devices[0].id;
+                    
+                    html5QrCode.start(
+                        cameraId, 
+                        { fps: 20, qrbox: { width: 250, height: 250 } },
+                        (id) => { prosesScan(id.trim()); },
+                        (err) => { /* ignore */ }
+                    ).catch(err => {
+                        console.error(err);
+                        document.getElementById('btnStart').classList.remove('hidden');
+                    });
+                }
+            }).catch(err => {
+                alert("Klik ikon gembok di baris alamat browser, lalu izinkan Kamera.");
+            });
+        }
+
+        // Jalankan otomatis saat halaman dibuka
+        window.onload = mulaiKamera;
 
         async function prosesScan(id) {
-            // 1. Cek database anggota (ID dari kartu kantin)
+            // Cek Siswa
             const snapSiswa = await db.ref('anggota_perpus/' + id).once('value');
             if (snapSiswa.exists()) {
                 currentSiswa = snapSiswa.val();
@@ -85,7 +105,7 @@
                 return;
             }
 
-            // 2. Cek database buku
+            // Cek Buku
             const snapBuku = await db.ref('koleksi_buku/' + id).once('value');
             if (snapBuku.exists()) {
                 currentBuku = snapBuku.val();
@@ -93,23 +113,23 @@
                 return;
             }
             
-            alert("Data tidak ditemukan! Pastikan Anggota/Buku sudah terdaftar di sistem Perpus.");
+            // Opsional: Suara atau getar jika tidak ketemu
         }
 
         function renderInfo() {
             const container = document.getElementById('displayStatus');
             container.innerHTML = `
-                <div class="space-y-3">
+                <div class="space-y-3 animate-in fade-in duration-500">
                     <div class="p-4 ${currentSiswa ? 'bg-indigo-50 border-indigo-200' : 'bg-slate-50'} rounded-2xl border-2 transition-all">
-                        <p class="text-[8px] font-black text-indigo-400 uppercase">Peminjam (Kartu Kantin):</p>
-                        <p class="font-black text-indigo-900">${currentSiswa ? currentSiswa.nama : 'BELUM SCAN'}</p>
+                        <p class="text-[8px] font-black text-indigo-400 uppercase">Peminjam:</p>
+                        <p class="font-black text-indigo-900 text-sm">${currentSiswa ? currentSiswa.nama : 'SCAN KARTU KANTIN...'}</p>
                     </div>
                     <div class="p-4 ${currentBuku ? 'bg-orange-50 border-orange-200' : 'bg-slate-50'} rounded-2xl border-2 transition-all">
-                        <p class="text-[8px] font-black text-orange-400 uppercase">Buku Perpustakaan:</p>
-                        <p class="font-black text-orange-900">${currentBuku ? currentBuku.judul : 'BELUM SCAN'}</p>
+                        <p class="text-[8px] font-black text-orange-400 uppercase">Buku:</p>
+                        <p class="font-black text-orange-900 text-sm">${currentBuku ? currentBuku.judul : 'SCAN BARCODE BUKU...'}</p>
                     </div>
                     ${currentSiswa && currentBuku ? `
-                        <button onclick="pinjamBuku()" class="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-xl hover:bg-indigo-700 uppercase text-xs tracking-widest animate-pulse">
+                        <button onclick="pinjamBuku()" class="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-xl hover:bg-indigo-700 uppercase text-xs tracking-widest animate-bounce mt-2">
                             Konfirmasi Pinjam ✅
                         </button>
                     ` : ''}
@@ -118,15 +138,12 @@
         }
 
         function pinjamBuku() {
-            if (currentBuku.stok_tersedia <= 0) return alert("Maaf, Stok buku sedang kosong di rak!");
-
+            if (currentBuku.stok_tersedia <= 0) return alert("Stok Kosong!");
             const tgl = new Date();
             const tempo = new Date();
-            tempo.setDate(tgl.getDate() + 7); // Durasi pinjam 7 hari
+            tempo.setDate(tgl.getDate() + 7);
 
-            // ID unik transaksi: gabungan ID Siswa dan ISBN Buku
             const refID = currentSiswa.id + "_" + currentBuku.isbn;
-
             db.ref('peminjaman_aktif/' + refID).set({
                 idSiswa: currentSiswa.id,
                 namaSiswa: currentSiswa.nama,
@@ -135,46 +152,38 @@
                 tglPinjam: tgl.toLocaleDateString('id-ID'),
                 tglKembali: tempo.toLocaleDateString('id-ID')
             }).then(() => {
-                // Update Stok Buku otomatis
                 db.ref('koleksi_buku/' + currentBuku.isbn + '/stok_tersedia').transaction(s => (s || 0) - 1);
-                // Update Statistik Peminjaman Siswa
                 db.ref('anggota_perpus/' + currentSiswa.id + '/total_pinjam').transaction(t => (t || 0) + 1);
-                
-                alert("Berhasil! Selamat membaca, " + currentSiswa.nama);
+                alert("Pinjaman Berhasil!");
                 location.reload();
             });
         }
 
-        // Tampilkan List Transaksi Aktif
+        // Live List
         db.ref('peminjaman_aktif').on('value', snap => {
             const list = document.getElementById('listPinjam');
             const count = document.getElementById('countPinjam');
             list.innerHTML = "";
             let total = 0;
-
             snap.forEach(pSnap => {
                 total++;
                 const p = pSnap.val();
                 list.innerHTML += `
-                    <div class="bg-slate-50 p-5 rounded-[2rem] border border-slate-100 flex justify-between items-center group hover:bg-white hover:shadow-md transition-all">
-                        <div>
-                            <h4 class="font-black text-indigo-900 text-xs uppercase leading-tight">${p.judulBuku}</h4>
-                            <p class="text-[9px] font-bold text-orange-500 uppercase mt-1">${p.namaSiswa}</p>
-                            <p class="text-[8px] text-slate-400 font-bold">Tempo: ${p.tglKembali}</p>
+                    <div class="bg-slate-50 p-5 rounded-[2rem] border border-slate-100 flex justify-between items-center hover:bg-white hover:shadow-md transition-all">
+                        <div class="max-w-[80%]">
+                            <h4 class="font-black text-indigo-900 text-[11px] uppercase truncate">${p.judulBuku}</h4>
+                            <p class="text-[9px] font-bold text-orange-500 uppercase">${p.namaSiswa}</p>
+                            <p class="text-[8px] text-slate-400 font-bold italic">Batas: ${p.tglKembali}</p>
                         </div>
-                        <button onclick="kembalikanBuku('${pSnap.key}', '${p.isbn}')" class="bg-emerald-100 text-emerald-600 hover:bg-emerald-600 hover:text-white p-3 rounded-2xl transition-all">
-                            ✔
-                        </button>
-                    </div>
-                `;
+                        <button onclick="kembalikanBuku('${pSnap.key}', '${p.isbn}')" class="bg-emerald-50 text-emerald-600 p-3 rounded-2xl hover:bg-emerald-500 hover:text-white transition-all font-bold">✔</button>
+                    </div>`;
             });
             count.innerText = total;
         });
 
         function kembalikanBuku(key, isbn) {
-            if (confirm("Konfirmasi pengembalian buku?")) {
+            if (confirm("Konfirmasi pengembalian?")) {
                 db.ref('peminjaman_aktif/' + key).remove();
-                // Kembalikan stok ke rak
                 db.ref('koleksi_buku/' + isbn + '/stok_tersedia').transaction(s => (s || 0) + 1);
             }
         }
