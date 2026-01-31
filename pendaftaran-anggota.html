@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto-Daftar Anggota - E-Perpus</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body class="bg-slate-50 min-h-screen p-4">
+
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-indigo-600 text-white p-8 rounded-[2.5rem] shadow-xl mb-6 border-b-8 border-indigo-800">
+            <h1 class="text-2xl font-black uppercase italic leading-none text-center">Smart Registration 👤</h1>
+            <p class="text-center text-[10px] font-bold mt-2 opacity-70 uppercase tracking-widest">Sinkronisasi Otomatis Data Kantin</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-[2.5rem] shadow-sm mb-8 border border-indigo-100">
+            <div id="scannerArea" class="hidden mb-4 rounded-2xl overflow-hidden border-4 border-indigo-50">
+                <div id="reader"></div>
+                <button onclick="tutupScanner()" class="w-full bg-red-500 text-white py-2 font-bold text-[10px] uppercase">Batal</button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="relative">
+                    <input type="text" id="idSiswa" placeholder="SCAN KARTU DISINI" class="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none focus:ring-2 ring-indigo-500">
+                    <button onclick="bukaScanner()" class="absolute right-2 top-2 bg-indigo-500 text-white p-2 rounded-xl text-xs font-black animate-pulse">SCAN</button>
+                </div>
+                <input type="text" id="namaSiswa" placeholder="NAMA (OTOMATIS)" class="p-4 bg-slate-50 rounded-2xl font-bold outline-none focus:ring-2 ring-indigo-500 uppercase">
+                <input type="text" id="kelasSiswa" placeholder="KELAS (OTOMATIS)" class="p-4 bg-slate-50 rounded-2xl font-bold outline-none focus:ring-2 ring-indigo-500 uppercase">
+            </div>
+            
+            <button onclick="simpanSiswa()" class="w-full mt-4 bg-emerald-500 text-white font-black py-4 rounded-2xl hover:bg-emerald-600 transition-all uppercase text-xs tracking-widest shadow-lg">
+                Konfirmasi Jadi Anggota Perpus ✅
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="listAnggota"></div>
+    </div>
+
+    <script>
+        // === 1. CONFIG FIREBASE PERPUS (PENYIMPANAN) ===
+        const perpusConfig = {
+            apiKey: "ISI_API_KEY_PERPUS",
+            databaseURL: "ISI_DATABASE_URL_PERPUS",
+            projectId: "ISI_PROJECT_ID_PERPUS",
+            appId: "ISI_APP_ID_PERPUS"
+        };
+        const appPerpus = firebase.initializeApp(perpusConfig, "perpus");
+        const dbPerpus = appPerpus.database();
+
+        // === 2. CONFIG FIREBASE KANTIN (SUMBER DATA) ===
+        const kantinConfig = {
+            apiKey: "ISI_API_KEY_KANTIN",
+            databaseURL: "ISI_DATABASE_URL_KANTIN",
+            projectId: "ISI_PROJECT_ID_KANTIN",
+            appId: "ISI_APP_ID_KANTIN"
+        };
+        const appKantin = firebase.initializeApp(kantinConfig, "kantin");
+        const dbKantin = appKantin.database();
+
+        let html5QrCode;
+
+        function bukaScanner() {
+            document.getElementById('scannerArea').classList.remove('hidden');
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start({ facingMode: "environment" }, { fps: 15, qrbox: 250 }, (id) => {
+                cariDataKantin(id.trim());
+                tutupScanner();
+            });
+        }
+
+        function tutupScanner() {
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    document.getElementById('scannerArea').classList.add('hidden');
+                });
+            }
+        }
+
+        function cariDataKantin(id) {
+            document.getElementById('idSiswa').value = id;
+            // Mencari di database kantin (kantin_users)
+            dbKantin.ref('kantin_users/' + id).once('value', snap => {
+                const data = snap.val();
+                if(data) {
+                    document.getElementById('namaSiswa').value = data.nama;
+                    document.getElementById('kelasSiswa').value = data.kelas || "-";
+                    // Beri efek warna hijau tanda ketemu
+                    document.getElementById('namaSiswa').classList.add('ring-2', 'ring-emerald-500');
+                } else {
+                    alert("ID Scan Berhasil, tapi Nama tidak ditemukan di Database Kantin. Silakan isi manual.");
+                }
+            });
+        }
+
+        function simpanSiswa() {
+            const id = document.getElementById('idSiswa').value.trim();
+            const nama = document.getElementById('namaSiswa').value.trim().toUpperCase();
+            const kelas = document.getElementById('kelasSiswa').value.trim().toUpperCase();
+
+            if(id && nama) {
+                dbPerpus.ref('anggota_perpus/' + id).set({
+                    id, nama, kelas,
+                    status: "AKTIF",
+                    total_pinjam: 0,
+                    tgl_daftar: new Date().toLocaleDateString('id-ID')
+                }).then(() => {
+                    alert("✅ " + nama + " Berhasil Terdaftar di Perpus!");
+                    location.reload();
+                });
+            } else { alert("Data masih kosong!"); }
+        }
+
+        // Tampil Data dari Database Perpus
+        dbPerpus.ref('anggota_perpus').on('value', snap => {
+            const container = document.getElementById('listAnggota');
+            container.innerHTML = "";
+            snap.forEach(sSnap => {
+                const s = sSnap.val();
+                container.innerHTML += `
+                    <div class="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex items-center justify-between">
+                        <div>
+                            <p class="text-[8px] font-black text-indigo-500 uppercase">ID: ${s.id}</p>
+                            <h3 class="font-black text-slate-800 uppercase text-xs">${s.nama}</h3>
+                            <p class="text-[9px] font-bold text-slate-400">KELAS ${s.kelas}</p>
+                        </div>
+                        <button onclick="if(confirm('Hapus?')) dbPerpus.ref('anggota_perpus/${s.id}').remove()" class="text-red-300 hover:text-red-500">🗑️</button>
+                    </div>`;
+            });
+        });
+    </script>
+</body>
+</html>
