@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Perpus - Input Buku</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 min-h-screen p-4">
+
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-orange-600 text-white p-8 rounded-[2.5rem] shadow-xl mb-6">
+            <h1 class="text-2xl font-black uppercase italic">E-Perpus: Katalog Buku 📚</h1>
+            <p class="text-xs font-bold opacity-80 uppercase tracking-widest">Input Koleksi Buku Perpustakaan</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-[2.5rem] shadow-sm mb-8 border-2 border-orange-100">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input type="text" id="isbn" placeholder="KODE/BARCODE BUKU" class="p-4 bg-slate-100 rounded-2xl font-bold outline-none focus:ring-2 ring-orange-500">
+                <input type="text" id="judul" placeholder="JUDUL BUKU" class="p-4 bg-slate-100 rounded-2xl font-bold outline-none focus:ring-2 ring-orange-500 uppercase">
+                <input type="text" id="penulis" placeholder="PENULIS/PENGARANG" class="p-4 bg-slate-100 rounded-2xl font-bold outline-none focus:ring-2 ring-orange-500">
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="number" id="stok" placeholder="JUMLAH STOK" class="p-4 bg-slate-100 rounded-2xl font-bold outline-none focus:ring-2 ring-orange-500">
+                    <button onclick="simpanBuku()" class="bg-orange-500 text-white font-black rounded-2xl hover:bg-orange-600 transition-all uppercase text-xs">Simpan 💾</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-[2.5rem] shadow-sm overflow-hidden border border-slate-200">
+            <table class="w-full text-left">
+                <thead class="bg-slate-800 text-white text-[10px] uppercase font-black">
+                    <tr>
+                        <th class="p-4">Kode</th>
+                        <th class="p-4">Judul</th>
+                        <th class="p-4 text-center">Tersedia</th>
+                        <th class="p-4 text-center">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="listBuku" class="text-xs font-bold text-slate-600">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // MASUKKAN CONFIG FIREBASE BARU BAPAK DI SINI
+        const firebaseConfig = {
+            apiKey: "ISI_DENGAN_API_KEY_BARU",
+            authDomain: "ISI_DENGAN_AUTH_DOMAIN_BARU",
+            databaseURL: "ISI_DENGAN_DATABASE_URL_BARU",
+            projectId: "ISI_DENGAN_PROJECT_ID_BARU",
+            storageBucket: "ISI_DENGAN_STORAGE_BARU",
+            messagingSenderId: "ISI_NOMOR_SENDER",
+            appId: "ISI_APP_ID"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        function simpanBuku() {
+            const isbn = document.getElementById('isbn').value.trim();
+            const judul = document.getElementById('judul').value.trim().toUpperCase();
+            const penulis = document.getElementById('penulis').value.trim();
+            const stok = parseInt(document.getElementById('stok').value);
+
+            if(isbn && judul) {
+                db.ref('koleksi_buku/' + isbn).set({
+                    isbn, judul, penulis, 
+                    stok_total: stok,
+                    stok_tersedia: stok
+                }).then(() => {
+                    alert("Buku Berhasil Terdaftar!");
+                    document.querySelectorAll('input').forEach(i => i.value = "");
+                });
+            } else { alert("Minimal Kode & Judul diisi!"); }
+        }
+
+        // Tampilkan Data Real-Time
+        db.ref('koleksi_buku').on('value', snap => {
+            const table = document.getElementById('listBuku');
+            table.innerHTML = "";
+            snap.forEach(bukuSnap => {
+                const b = bukuSnap.val();
+                table.innerHTML += `
+                    <tr class="border-b border-slate-50">
+                        <td class="p-4 font-black text-orange-600">${b.isbn}</td>
+                        <td class="p-4 uppercase">${b.judul}</td>
+                        <td class="p-4 text-center">${b.stok_tersedia} / ${b.stok_total}</td>
+                        <td class="p-4 text-center">
+                            <button onclick="hapusBuku('${b.isbn}')" class="text-red-400 hover:text-red-600">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        });
+
+        function hapusBuku(id) {
+            if(confirm("Hapus buku ini?")) db.ref('koleksi_buku/' + id).remove();
+        }
+    </script>
+</body>
+</html>
