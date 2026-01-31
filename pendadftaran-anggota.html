@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anggota Perpus - E-Perpus</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 min-h-screen p-4">
+
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-amber-500 text-white p-8 rounded-[2.5rem] shadow-xl mb-6 border-b-8 border-amber-700">
+            <h1 class="text-2xl font-black uppercase italic leading-none">Anggota Perpus 👥</h1>
+            <p class="text-[10px] font-bold opacity-80 uppercase tracking-[0.2em] mt-2">Registrasi & Database Keanggotaan</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-[2.5rem] shadow-sm mb-8 border border-amber-100">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <input type="text" id="idSiswa" placeholder="ID / NOMOR INDUK" class="p-4 bg-slate-50 rounded-2xl font-bold outline-none focus:ring-2 ring-amber-500">
+                <input type="text" id="namaSiswa" placeholder="NAMA LENGKAP" class="p-4 bg-slate-50 rounded-2xl font-bold outline-none focus:ring-2 ring-amber-500 uppercase">
+                <select id="kelasSiswa" class="p-4 bg-slate-50 rounded-2xl font-bold outline-none focus:ring-2 ring-amber-500">
+                    <option value="">PILIH KELAS</option>
+                    <option value="1">KELAS 1</option>
+                    <option value="2">KELAS 2</option>
+                    <option value="3">KELAS 3</option>
+                    <option value="4">KELAS 4</option>
+                    <option value="5">KELAS 5</option>
+                    <option value="6">KELAS 6</option>
+                </select>
+            </div>
+            <button onclick="simpanSiswa()" class="w-full mt-4 bg-amber-500 text-white font-black py-4 rounded-2xl hover:bg-amber-600 transition-all uppercase text-xs tracking-widest shadow-lg shadow-amber-100">
+                Daftarkan Anggota Baru ✨
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="listAnggota">
+            </div>
+    </div>
+
+    <script>
+        // SINKRONKAN DENGAN FIREBASE PERPUS BAPAK
+        const firebaseConfig = {
+            apiKey: "ISI_DENGAN_API_KEY_BARU",
+            authDomain: "ISI_DENGAN_AUTH_DOMAIN_BARU",
+            databaseURL: "ISI_DENGAN_DATABASE_URL_BARU",
+            projectId: "ISI_DENGAN_PROJECT_ID_BARU",
+            storageBucket: "ISI_DENGAN_STORAGE_BARU",
+            messagingSenderId: "ISI_NOMOR_SENDER",
+            appId: "ISI_APP_ID"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        function simpanSiswa() {
+            const id = document.getElementById('idSiswa').value.trim();
+            const nama = document.getElementById('namaSiswa').value.trim().toUpperCase();
+            const kelas = document.getElementById('kelasSiswa').value;
+
+            if(id && nama && kelas) {
+                db.ref('anggota_perpus/' + id).set({
+                    id, nama, kelas,
+                    status: "AKTIF",
+                    total_pinjam: 0,
+                    tgl_daftar: new Date().toLocaleDateString('id-ID')
+                }).then(() => {
+                    alert("✅ Siswa Berhasil Jadi Anggota!");
+                    document.getElementById('idSiswa').value = "";
+                    document.getElementById('namaSiswa').value = "";
+                    document.getElementById('kelasSiswa').value = "";
+                });
+            } else { alert("Mohon lengkapi semua data!"); }
+        }
+
+        // Tampilkan Data Anggota
+        db.ref('anggota_perpus').on('value', snap => {
+            const container = document.getElementById('listAnggota');
+            container.innerHTML = "";
+            snap.forEach(sSnap => {
+                const s = sSnap.val();
+                container.innerHTML += `
+                    <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-center justify-between">
+                        <div>
+                            <p class="text-[8px] font-black text-amber-500 uppercase">ID: ${s.id}</p>
+                            <h3 class="font-black text-slate-800 uppercase text-sm">${s.nama}</h3>
+                            <p class="text-[10px] font-bold text-slate-400">KELAS ${s.kelas} • Terdaftar: ${s.tgl_daftar}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="bg-slate-100 px-3 py-1 rounded-full text-[9px] font-black text-slate-500 uppercase">Pinjam: ${s.total_pinjam || 0}</span>
+                            <button onclick="hapusAnggota('${s.id}')" class="block mt-2 text-red-300 hover:text-red-500 ml-auto">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            });
+        });
+
+        function hapusAnggota(id) {
+            if(confirm("Hapus keanggotaan siswa ini?")) db.ref('anggota_perpus/' + id).remove();
+        }
+    </script>
+</body>
+</html>
