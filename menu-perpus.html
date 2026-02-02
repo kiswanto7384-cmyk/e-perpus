@@ -5,16 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard E-Perpus</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
 </head>
-<body class="bg-slate-100 min-h-screen flex items-center justify-center p-6">
+<body class="bg-slate-100 min-h-screen">
 
-    <div class="max-w-4xl w-full">
+    <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-3 mb-6">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <a href="menu-perpus.html" class="flex items-center gap-2">
+                <span class="text-xl">📚</span>
+                <span class="font-black text-indigo-900 italic text-sm tracking-tighter uppercase">E-Perpus</span>
+            </a>
+            <div class="flex gap-2 overflow-x-auto no-scrollbar ml-4">
+                <a href="sirkulasi.html" class="whitespace-nowrap px-3 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-indigo-50 transition-colors text-slate-600">🔄 Sirkulasi</a>
+                <a href="katalog.html" class="whitespace-nowrap px-3 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-orange-50 transition-colors text-slate-600">📖 Katalog</a>
+                <a href="daftar-anggota.html" class="whitespace-nowrap px-3 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-emerald-50 transition-colors text-slate-600">👤 Member</a>
+                <a href="log-sirkulasi.html" class="whitespace-nowrap px-3 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-slate-100 transition-colors text-slate-600">📜 Log</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-4xl mx-auto p-6 flex flex-col items-center justify-center min-h-[80vh]">
         <div class="text-center mb-10">
             <h1 class="text-4xl font-black text-indigo-900 italic uppercase">E-Perpus Dashboard 📚</h1>
             <p class="text-slate-500 font-bold uppercase tracking-widest text-xs mt-2">Sistem Perpustakaan Terintegrasi E-Kantin</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
             
             <a href="sirkulasi.html" class="group bg-indigo-600 p-8 rounded-[3rem] shadow-xl hover:bg-indigo-700 transition-all border-b-8 border-indigo-900">
                 <div class="flex items-center justify-between">
