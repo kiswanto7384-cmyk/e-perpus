@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard E-Perpus</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-6">
+
+    <div class="max-w-4xl w-full">
+        <div class="text-center mb-10">
+            <h1 class="text-4xl font-black text-indigo-900 italic uppercase">E-Perpus Dashboard 📚</h1>
+            <p class="text-slate-500 font-bold uppercase tracking-widest text-xs mt-2">Sistem Perpustakaan Terintegrasi E-Kantin</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <a href="sirkulasi.html" class="group bg-indigo-600 p-8 rounded-[3rem] shadow-xl hover:bg-indigo-700 transition-all border-b-8 border-indigo-900">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-white text-2xl font-black uppercase italic">Sirkulasi</h2>
+                        <p class="text-indigo-200 text-xs font-bold">Pinjam & Kembali Buku</p>
+                    </div>
+                    <span class="text-4xl group-hover:scale-110 transition-transform">🔄</span>
+                </div>
+            </a>
+
+            <a href="katalog.html" class="group bg-orange-500 p-8 rounded-[3rem] shadow-xl hover:bg-orange-600 transition-all border-b-8 border-orange-700">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-white text-2xl font-black uppercase italic">Katalog</h2>
+                        <p class="text-orange-100 text-xs font-bold">Input Stok Buku Baru</p>
+                    </div>
+                    <span class="text-4xl group-hover:scale-110 transition-transform">📖</span>
+                </div>
+            </a>
+
+            <a href="daftar-anggota.html" class="group bg-emerald-500 p-8 rounded-[3rem] shadow-xl hover:bg-emerald-600 transition-all border-b-8 border-emerald-700">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-white text-2xl font-black uppercase italic">Anggota</h2>
+                        <p class="text-emerald-100 text-xs font-bold">Daftar Member Baru</p>
+                    </div>
+                    <span class="text-4xl group-hover:scale-110 transition-transform">👤</span>
+                </div>
+            </a>
+
+            <a href="log-sirkulasi.html" class="group bg-slate-800 p-8 rounded-[3rem] shadow-xl hover:bg-slate-900 transition-all border-b-8 border-black">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-white text-2xl font-black uppercase italic">Laporan</h2>
+                        <p class="text-slate-400 text-xs font-bold">Riwayat Transaksi</p>
+                    </div>
+                    <span class="text-4xl group-hover:scale-110 transition-transform">📜</span>
+                </div>
+            </a>
+
+        </div>
+
+        <div class="mt-12 text-center">
+            <button onclick="location.href='../kantin/index.html'" class="text-slate-400 font-black text-[10px] uppercase tracking-[0.3em] hover:text-indigo-600 transition-colors">
+                ⬅️ Kembali ke Menu Utama Kantin
+            </button>
+        </div>
+    </div>
+
+</body>
+</html>
