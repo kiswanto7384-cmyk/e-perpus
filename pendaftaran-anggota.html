@@ -13,7 +13,7 @@
 
     <div class="max-w-xl mx-auto">
         <div class="bg-indigo-900 text-white p-6 rounded-[2rem] shadow-xl mb-6 border-b-8 border-indigo-500 text-center">
-            <h1 class="text-xl font-black uppercase italic">Registrasi Member 👤</h1>
+            <h1 class="text-xl font-black uppercase italic">Registrasi Member Perpus 👤</h1>
             <p class="text-[10px] font-bold opacity-60 uppercase tracking-widest">Tarik Data Otomatis dari E-Kantin</p>
         </div>
 
@@ -25,7 +25,7 @@
         <div class="bg-white p-6 rounded-[2.5rem] shadow-md border border-slate-100">
             <div class="space-y-4">
                 <div class="relative">
-                    <label class="text-[9px] font-black text-slate-400 uppercase ml-3">ID Kartu</label>
+                    <label class="text-[9px] font-black text-slate-400 uppercase ml-3">ID Kartu (Scan untuk Auto-Fill)</label>
                     <input type="text" id="idSiswa" placeholder="KLIK SCAN..." class="w-full p-4 bg-slate-100 rounded-2xl font-black outline-none border-2 border-transparent focus:border-indigo-500 text-indigo-900">
                     <button onclick="bukaScanner()" class="absolute right-2 top-7 bg-indigo-600 text-white px-5 py-2 rounded-2xl font-black text-xs hover:bg-indigo-700 active:scale-95 transition-all">SCAN 📷</button>
                 </div>
@@ -42,7 +42,7 @@
             </div>
             
             <button onclick="simpanSiswa()" class="w-full mt-6 bg-emerald-500 text-white font-black py-5 rounded-[2rem] shadow-lg shadow-emerald-100 uppercase tracking-[0.2em] text-xs hover:bg-emerald-600 transition-all">
-                Aktifkan Anggota ✅
+                Aktifkan Anggota Perpus ✅
             </button>
         </div>
 
@@ -50,14 +50,15 @@
     </div>
 
     <script>
+        // PAKAI CONFIG KANTIN SUPAYA BISA AMBIL DATA SISWA YANG SAMA
         const firebaseConfig = {
-            apiKey: "AIzaSyBXt0gEgczYD1jQ9OhNk5FGN8CePIFaSYw",
-            authDomain: "e-perpus-a652c.firebaseapp.com",
-            databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "e-perpus-a652c",
-            storageBucket: "e-perpus-a652c.firebasestorage.app",
-            messagingSenderId: "494352876853",
-            appId: "1:494352876853:web:ec71a7eb444281e7fa387c"
+            apiKey: "AIzaSyCUjE8WXa8Py4vnojrXDUR3uCvnQEzP6zQ",
+            authDomain: "e-kantin-91f0c.firebaseapp.com",
+            databaseURL: "https://e-kantin-91f0c-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "e-kantin-91f0c",
+            storageBucket: "e-kantin-91f0c.firebasestorage.app",
+            messagingSenderId: "981834126006",
+            appId: "1:981834126006:web:dac8bb0ec1da90549b4c17"
         };
 
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
@@ -85,23 +86,14 @@
         }
 
         function cariDataKantin(id) {
-            console.log("Mencari data di path: users/" + id);
-            
-            db.ref('users/' + id).once('value').then((snap) => {
+            // Path diarahkan ke 'kantin_users' sesuai database utama Bapak
+            db.ref('kantin_users/' + id).once('value').then((snap) => {
                 const data = snap.val();
                 if(data) {
                     document.getElementById('namaSiswa').value = data.nama || "";
                     document.getElementById('kelasSiswa').value = data.kelas || "-";
                 } else {
-                    // JIKA GAGAL, KITA INTIP ISI FOLDER USERS UNTUK DIAGNOSA
-                    db.ref('users').limitToFirst(3).once('value').then((diagnosa) => {
-                        let sampleIds = [];
-                        diagnosa.forEach(c => { sampleIds.push(c.key) });
-                        
-                        alert("❌ ID [" + id + "] Tidak Ditemukan.\n\nContoh ID yang ada di database Bapak: \n" + 
-                              (sampleIds.length > 0 ? sampleIds.join(", ") : "Folder 'users' ternyata KOSONG!") + 
-                              "\n\nPastikan huruf besar/kecilnya sama persis.");
-                    });
+                    alert("ID [" + id + "] Belum terdaftar di database Kantin!\nSilakan daftar di Admin Kantin dulu.");
                 }
             }).catch((error) => {
                 alert("Error Koneksi: " + error.message);
@@ -114,12 +106,13 @@
             const kelas = document.getElementById('kelasSiswa').value.trim().toUpperCase();
 
             if(id && nama) {
+                // Simpan ke folder 'anggota_perpus' agar terpisah dari riwayat kantin
                 db.ref('anggota_perpus/' + id).set({
                     id, nama, kelas,
                     tgl_daftar: new Date().toLocaleDateString('id-ID'),
                     status: "AKTIF"
                 }).then(() => {
-                    alert("✅ Berhasil Didaftarkan!");
+                    alert("✅ " + nama + " Resmi Jadi Anggota Perpus!");
                     document.getElementById('idSiswa').value = "";
                     document.getElementById('namaSiswa').value = "";
                     document.getElementById('kelasSiswa').value = "";
@@ -127,19 +120,20 @@
             } else { alert("Data belum lengkap!"); }
         }
 
+        // Monitoring Daftar Anggota Perpus
         db.ref('anggota_perpus').on('value', snap => {
             const container = document.getElementById('listAnggota');
             container.innerHTML = "";
             snap.forEach(sSnap => {
                 const s = sSnap.val();
                 container.innerHTML += `
-                    <div class="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex justify-between items-center">
+                    <div class="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex justify-between items-center animate-fade-in">
                         <div>
                             <p class="text-[7px] font-black text-indigo-500 uppercase">ID: ${s.id}</p>
                             <h3 class="font-black text-[11px] uppercase text-slate-800">${s.nama}</h3>
-                            <p class="text-[8px] font-bold text-slate-400">KELAS ${s.kelas}</p>
+                            <p class="text-[8px] font-bold text-slate-400">${s.kelas}</p>
                         </div>
-                        <button onclick="if(confirm('Hapus?')) db.ref('anggota_perpus/${s.id}').remove()" class="text-slate-200 hover:text-red-500 p-2">🗑️</button>
+                        <button onclick="if(confirm('Hapus Keanggotaan?')) db.ref('anggota_perpus/${s.id}').remove()" class="text-slate-200 hover:text-red-500 p-2 transition-colors">🗑️</button>
                     </div>`;
             });
         });
