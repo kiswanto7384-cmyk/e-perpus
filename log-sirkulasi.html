@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log Sirkulasi - E-Perpus</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 min-h-screen p-4">
+
+    <div class="max-w-6xl mx-auto">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="md:col-span-2 bg-indigo-600 text-white p-8 rounded-[2.5rem] shadow-xl border-b-8 border-indigo-800">
+                <h1 class="text-2xl font-black uppercase italic">Riwayat Sirkulasi 📜</h1>
+                <p class="text-[10px] font-bold opacity-80 uppercase tracking-widest mt-2">Data Peminjaman & Pengembalian Buku</p>
+            </div>
+            <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-indigo-100 flex flex-col justify-center items-center">
+                <p class="text-[10px] font-black text-slate-400 uppercase">Buku Belum Kembali</p>
+                <h2 id="totalAktif" class="text-4xl font-black text-orange-500">0</h2>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-[2.5rem] shadow-sm overflow-hidden border border-slate-200">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-800 text-white text-[10px] uppercase font-black">
+                        <tr>
+                            <th class="p-5">Waktu Pinjam</th>
+                            <th class="p-5">Peminjam</th>
+                            <th class="p-5">Judul Buku</th>
+                            <th class="p-5 text-center">Status</th>
+                            <th class="p-5">Waktu Kembali</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelLog" class="text-[11px] font-bold text-slate-600">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBXt0gEgczYD1jQ9OhNk5FGN8CePIFaSYw",
+            authDomain: "e-perpus-a652c.firebaseapp.com",
+            databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "e-perpus-a652c"
+        };
+        
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Ambil Data Log
+        db.ref('perpus_laporan').on('value', snap => {
+            const tbody = document.getElementById('tabelLog');
+            const counter = document.getElementById('totalAktif');
+            tbody.innerHTML = "";
+            
+            let aktif = 0;
+            let rows = [];
+
+            snap.forEach(child => {
+                const d = child.val();
+                if(d.status === "DIPINJAM") aktif++;
+                
+                const statusKls = d.status === "DIPINJAM" 
+                    ? "bg-orange-100 text-orange-600" 
+                    : "bg-emerald-100 text-emerald-600";
+
+                rows.push(`
+                    <tr class="border-b border-slate-50 hover:bg-slate-50 transition-all">
+                        <td class="p-5 text-slate-400">${d.tglPinjam}</td>
+                        <td class="p-5">
+                            <span class="block text-indigo-900 font-black uppercase">${d.namaSiswa}</span>
+                            <span class="text-[9px] text-slate-400">${d.idSiswa}</span>
+                        </td>
+                        <td class="p-5 text-slate-800 uppercase font-black">${d.judulBuku}</td>
+                        <td class="p-5 text-center">
+                            <span class="px-3 py-1 rounded-full text-[9px] font-black ${statusKls}">
+                                ${d.status}
+                            </span>
+                        </td>
+                        <td class="p-5 text-emerald-600 font-black italic">
+                            ${d.tglKembali || "-"}
+                        </td>
+                    </tr>
+                `);
+            });
+
+            // Balik urutan agar yang terbaru di atas
+            tbody.innerHTML = rows.reverse().join('');
+            counter.innerText = aktif;
+        });
+    </script>
+</body>
+</html>
