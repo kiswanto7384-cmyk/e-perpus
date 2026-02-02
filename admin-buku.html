@@ -8,14 +8,33 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
 </head>
-<body class="bg-slate-50 min-h-screen p-4">
+<body class="bg-slate-50 min-h-screen pb-10">
 
-    <div class="max-w-4xl mx-auto">
+    <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-3 mb-6">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <a href="menu-perpus.html" class="flex items-center gap-2">
+                <span class="text-xl">📚</span>
+                <span class="font-black text-indigo-900 italic text-sm tracking-tighter uppercase">E-Perpus</span>
+            </a>
+            <div class="flex gap-2 overflow-x-auto no-scrollbar ml-4">
+                <a href="sirkulasi.html" class="whitespace-nowrap px-3 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-indigo-50 transition-colors text-slate-600">🔄 Sirkulasi</a>
+                <a href="katalog.html" class="whitespace-nowrap px-3 py-2 rounded-xl text-[9px] font-black uppercase bg-orange-600 text-white shadow-sm">📖 Katalog</a>
+                <a href="daftar-anggota.html" class="whitespace-nowrap px-3 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-emerald-50 transition-colors text-slate-600">👤 Member</a>
+                <a href="log-sirkulasi.html" class="whitespace-nowrap px-3 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-slate-100 transition-colors text-slate-600">📜 Log</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-4xl mx-auto px-4">
         <div class="bg-orange-600 text-white p-8 rounded-[2.5rem] shadow-xl mb-6 border-b-8 border-orange-800 flex justify-between items-center">
             <div>
-                <h1 class="text-2xl font-black uppercase italic leading-none">E-Perpus: Katalog Buku 📚</h1>
-                <p class="text-[10px] font-bold opacity-80 uppercase tracking-widest mt-2">Input Koleksi Buku Perpustakaan</p>
+                <h1 class="text-2xl font-black uppercase italic leading-none">Katalog Buku 📚</h1>
+                <p class="text-[10px] font-bold opacity-80 uppercase tracking-widest mt-2">Input Koleksi Perpustakaan</p>
             </div>
             <div class="text-3xl">📖</div>
         </div>
@@ -79,7 +98,6 @@
 
         let scannerInstance = null;
 
-        // FUNGSI SCANNER
         async function bukaScanner() {
             const area = document.getElementById('scannerArea');
             area.classList.remove('hidden');
@@ -94,7 +112,6 @@
                 (decodedText) => {
                     document.getElementById('isbn').value = decodedText;
                     tutupScanner();
-                    // Bunyi bip sukses bisa ditambah di sini
                 }
             ).catch(err => {
                 alert("Gagal buka kamera: " + err);
