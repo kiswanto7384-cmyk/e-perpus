@@ -8,10 +8,29 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
 </head>
-<body class="bg-slate-50 p-4 font-sans min-h-screen">
+<body class="bg-slate-50 font-sans min-h-screen pb-10">
 
-    <div class="max-w-xl mx-auto">
+    <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-3 mb-6">
+        <div class="max-w-xl mx-auto flex justify-between items-center">
+            <a href="menu-perpus.html" class="flex items-center gap-2">
+                <span class="text-xl">📚</span>
+                <span class="font-black text-indigo-900 italic text-sm tracking-tighter uppercase">E-Perpus</span>
+            </a>
+            <div class="flex gap-2 overflow-x-auto no-scrollbar ml-4">
+                <a href="sirkulasi.html" class="whitespace-nowrap px-3 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-indigo-50 transition-colors text-slate-600">🔄 Sirkulasi</a>
+                <a href="katalog.html" class="whitespace-nowrap px-3 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-orange-50 transition-colors text-slate-600">📖 Katalog</a>
+                <a href="daftar-anggota.html" class="whitespace-nowrap px-3 py-2 rounded-xl text-[9px] font-black uppercase bg-emerald-500 text-white shadow-sm">👤 Member</a>
+                <a href="log-sirkulasi.html" class="whitespace-nowrap px-3 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-slate-100 transition-colors text-slate-600">📜 Log</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-xl mx-auto px-4">
         <div class="bg-indigo-900 text-white p-6 rounded-[2rem] shadow-xl mb-6 border-b-8 border-indigo-500 text-center">
             <h1 class="text-xl font-black uppercase italic">Registrasi Member Perpus 👤</h1>
             <p class="text-[10px] font-bold opacity-60 uppercase tracking-widest">Tarik Data Otomatis dari E-Kantin</p>
@@ -50,7 +69,6 @@
     </div>
 
     <script>
-        // PAKAI CONFIG KANTIN SUPAYA BISA AMBIL DATA SISWA YANG SAMA
         const firebaseConfig = {
             apiKey: "AIzaSyCUjE8WXa8Py4vnojrXDUR3uCvnQEzP6zQ",
             authDomain: "e-kantin-91f0c.firebaseapp.com",
@@ -86,14 +104,13 @@
         }
 
         function cariDataKantin(id) {
-            // Path diarahkan ke 'kantin_users' sesuai database utama Bapak
             db.ref('kantin_users/' + id).once('value').then((snap) => {
                 const data = snap.val();
                 if(data) {
                     document.getElementById('namaSiswa').value = data.nama || "";
                     document.getElementById('kelasSiswa').value = data.kelas || "-";
                 } else {
-                    alert("ID [" + id + "] Belum terdaftar di database Kantin!\nSilakan daftar di Admin Kantin dulu.");
+                    alert("ID [" + id + "] Belum terdaftar di database Kantin!");
                 }
             }).catch((error) => {
                 alert("Error Koneksi: " + error.message);
@@ -106,7 +123,6 @@
             const kelas = document.getElementById('kelasSiswa').value.trim().toUpperCase();
 
             if(id && nama) {
-                // Simpan ke folder 'anggota_perpus' agar terpisah dari riwayat kantin
                 db.ref('anggota_perpus/' + id).set({
                     id, nama, kelas,
                     tgl_daftar: new Date().toLocaleDateString('id-ID'),
@@ -120,14 +136,13 @@
             } else { alert("Data belum lengkap!"); }
         }
 
-        // Monitoring Daftar Anggota Perpus
         db.ref('anggota_perpus').on('value', snap => {
             const container = document.getElementById('listAnggota');
             container.innerHTML = "";
             snap.forEach(sSnap => {
                 const s = sSnap.val();
                 container.innerHTML += `
-                    <div class="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex justify-between items-center animate-fade-in">
+                    <div class="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex justify-between items-center">
                         <div>
                             <p class="text-[7px] font-black text-indigo-500 uppercase">ID: ${s.id}</p>
                             <h3 class="font-black text-[11px] uppercase text-slate-800">${s.nama}</h3>
