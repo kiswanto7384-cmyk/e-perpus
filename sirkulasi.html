@@ -12,9 +12,9 @@
 <body class="bg-slate-50 min-h-screen p-4 font-sans">
 
     <div class="max-w-4xl mx-auto">
-        <div class="bg-indigo-600 text-white p-8 rounded-[2.5rem] shadow-xl mb-6 border-b-8 border-indigo-800">
-            <h1 class="text-2xl font-black uppercase italic text-center leading-none">Registrasi Anggota 👤</h1>
-            <p class="text-center text-[10px] font-bold mt-2 opacity-70 uppercase tracking-widest text-white/80">Satu Kartu: Kantin & Perpustakaan</p>
+        <div class="bg-indigo-600 text-white p-8 rounded-[2.5rem] shadow-xl mb-6 border-b-8 border-indigo-800 text-center">
+            <h1 class="text-2xl font-black uppercase italic leading-none">Registrasi Anggota 👤</h1>
+            <p class="text-[10px] font-bold mt-2 opacity-70 uppercase tracking-widest text-white/80">Satu Kartu: Kantin & Perpustakaan</p>
         </div>
 
         <div class="bg-white p-6 rounded-[2.5rem] shadow-sm mb-8 border border-indigo-100">
@@ -46,7 +46,7 @@
     </div>
 
     <script>
-        // CONFIG FIREBASE PERPUS
+        // CONFIG FIREBASE PERPUS (Milik Bapak)
         const perpusConfig = {
             apiKey: "AIzaSyBXt0gEgczYD1jQ9OhNk5FGN8CePIFaSYw",
             authDomain: "e-perpus-a652c.firebaseapp.com",
@@ -59,11 +59,11 @@
         const appPerpus = firebase.initializeApp(perpusConfig, "perpus");
         const dbPerpus = appPerpus.database();
 
-        // CONFIG KANTIN (SAMAKAN DENGAN KASIR KANTIN BAPAK)
+        // CONFIG KANTIN (SINKRON DENGAN KASIR - SERVER SINGAPURA)
         const kantinConfig = {
-            apiKey: "API_KEY_KANTIN", 
-            databaseURL: "URL_DATABASE_KANTIN", 
-            projectId: "PROJECT_ID_KANTIN" 
+            apiKey: "AIzaSyCUjE8WXa8Py4vnojrXDUR3uCvnQEzP6zQ",
+            databaseURL: "https://e-kantin-91f0c-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "e-kantin-91f0c"
         };
         const appKantin = firebase.initializeApp(kantinConfig, "kantin");
         const dbKantin = appKantin.database();
@@ -73,21 +73,10 @@
         async function bukaScanner() {
             const area = document.getElementById('scannerArea');
             area.classList.remove('hidden');
-
-            // Reset scanner jika sudah ada sebelumnya
-            if (scannerInstance) {
-                try { await scannerInstance.stop(); } catch(e) {}
-            }
-
+            if (scannerInstance) { try { await scannerInstance.stop(); } catch(e) {} }
             scannerInstance = new Html5Qrcode("reader");
+            const config = { fps: 15, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
 
-            const config = { 
-                fps: 15, 
-                qrbox: { width: 250, height: 250 },
-                aspectRatio: 1.0 
-            };
-
-            // Gunakan kamera belakang secara paksa
             scannerInstance.start(
                 { facingMode: "environment" }, 
                 config, 
@@ -95,27 +84,21 @@
                     document.getElementById('idSiswa').value = decodedText;
                     cariDataKantin(decodedText);
                     tutupScanner();
-                },
-                (errorMessage) => { /* scanning... */ }
+                }
             ).catch(err => {
-                alert("Kamera gagal dimulai. Pastikan Bapak sudah mengizinkan akses kamera di pengaturan browser Chrome (ikon gembok).");
-                console.error(err);
+                alert("Kamera gagal! Pastikan izin kamera aktif.");
                 area.classList.add('hidden');
             });
         }
 
         async function tutupScanner() {
             if (scannerInstance) {
-                try {
-                    await scannerInstance.stop();
-                    scannerInstance = null;
-                } catch (err) {
-                    console.log("Scanner stop error", err);
-                }
+                try { await scannerInstance.stop(); scannerInstance = null; } catch (err) {}
             }
             document.getElementById('scannerArea').classList.add('hidden');
         }
 
+        // FUNGSI INI SEKARANG SUDAH TERHUBUNG KE KANTIN_USERS
         function cariDataKantin(id) {
             dbKantin.ref('kantin_users/' + id).once('value', snap => {
                 const data = snap.val();
@@ -123,7 +106,7 @@
                     document.getElementById('namaSiswa').value = data.nama;
                     document.getElementById('kelasSiswa').value = data.kelas || "-";
                 } else {
-                    alert("ID ditemukan, tapi data Siswa belum ada di database Kantin. Ketik manual ya, Pak.");
+                    alert("ID Scan: " + id + "\nData tidak ditemukan di database Kantin.");
                 }
             });
         }
@@ -140,13 +123,14 @@
                     total_pinjam: 0,
                     tgl_daftar: new Date().toLocaleDateString('id-ID')
                 }).then(() => {
-                    alert("✅ Anggota Perpus Berhasil Ditambahkan!");
-                    location.reload();
+                    alert("✅ " + nama + " Berhasil Jadi Anggota Perpus!");
+                    document.getElementById('idSiswa').value = "";
+                    document.getElementById('namaSiswa').value = "";
+                    document.getElementById('kelasSiswa').value = "";
                 });
-            } else { alert("Scan kartu atau isi data dulu, Pak."); }
+            } else { alert("Data belum lengkap!"); }
         }
 
-        // Tampilan List Anggota (Real-time)
         dbPerpus.ref('anggota_perpus').on('value', snap => {
             const container = document.getElementById('listAnggota');
             container.innerHTML = "";
@@ -155,11 +139,11 @@
                 container.innerHTML += `
                     <div class="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex items-center justify-between group hover:border-indigo-300 transition-all">
                         <div>
-                            <p class="text-[7px] font-black text-indigo-500 uppercase tracking-widest">ID: ${s.id}</p>
+                            <p class="text-[7px] font-black text-indigo-500 uppercase">ID: ${s.id}</p>
                             <h3 class="font-black text-slate-800 uppercase text-xs leading-none mt-1">${s.nama}</h3>
-                            <p class="text-[9px] font-bold text-slate-400 mt-1">KELAS ${s.kelas}</p>
+                            <p class="text-[9px] font-bold text-slate-400 mt-1">${s.kelas}</p>
                         </div>
-                        <button onclick="if(confirm('Hapus siswa ini dari perpus?')) dbPerpus.ref('anggota_perpus/${s.id}').remove()" class="text-slate-300 hover:text-red-500 p-2">🗑️</button>
+                        <button onclick="if(confirm('Hapus dari perpus?')) dbPerpus.ref('anggota_perpus/${s.id}').remove()" class="text-slate-300 hover:text-red-500 p-2">🗑️</button>
                     </div>`;
             });
         });
