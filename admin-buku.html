@@ -7,23 +7,41 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 <body class="bg-slate-50 min-h-screen p-4">
 
     <div class="max-w-4xl mx-auto">
-        <div class="bg-orange-600 text-white p-8 rounded-[2.5rem] shadow-xl mb-6 border-b-8 border-orange-800">
-            <h1 class="text-2xl font-black uppercase italic">E-Perpus: Katalog Buku 📚</h1>
-            <p class="text-xs font-bold opacity-80 uppercase tracking-widest">Input Koleksi Buku Perpustakaan</p>
+        <div class="bg-orange-600 text-white p-8 rounded-[2.5rem] shadow-xl mb-6 border-b-8 border-orange-800 flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-black uppercase italic leading-none">E-Perpus: Katalog Buku 📚</h1>
+                <p class="text-[10px] font-bold opacity-80 uppercase tracking-widest mt-2">Input Koleksi Buku Perpustakaan</p>
+            </div>
+            <div class="text-3xl">📖</div>
+        </div>
+
+        <div id="scannerArea" class="hidden mb-6 rounded-[2rem] overflow-hidden border-4 border-orange-500 bg-black relative shadow-2xl">
+            <div id="reader" style="width: 100%; min-height: 300px;"></div>
+            <button onclick="tutupScanner()" class="w-full bg-red-600 text-white py-4 font-black text-xs uppercase tracking-widest">
+                Tutup Kamera ❌
+            </button>
         </div>
 
         <div class="bg-white p-6 rounded-[2.5rem] shadow-sm mb-8 border-2 border-orange-100">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input type="text" id="isbn" placeholder="KODE/BARCODE BUKU" class="p-4 bg-slate-100 rounded-2xl font-bold outline-none focus:ring-2 ring-orange-500">
+                <div class="relative">
+                    <input type="text" id="isbn" placeholder="KODE/BARCODE BUKU" class="w-full p-4 bg-slate-100 rounded-2xl font-bold outline-none focus:ring-2 ring-orange-500 uppercase">
+                    <button onclick="bukaScanner()" class="absolute right-2 top-2 bottom-2 bg-orange-600 text-white px-4 rounded-xl font-black text-[10px] hover:bg-orange-700 active:scale-95 transition-all flex items-center gap-1">
+                        SCAN 📷
+                    </button>
+                </div>
+
                 <input type="text" id="judul" placeholder="JUDUL BUKU" class="p-4 bg-slate-100 rounded-2xl font-bold outline-none focus:ring-2 ring-orange-500 uppercase">
                 <input type="text" id="penulis" placeholder="PENULIS/PENGARANG" class="p-4 bg-slate-100 rounded-2xl font-bold outline-none focus:ring-2 ring-orange-500">
+                
                 <div class="grid grid-cols-2 gap-2">
                     <input type="number" id="stok" placeholder="JUMLAH STOK" class="p-4 bg-slate-100 rounded-2xl font-bold outline-none focus:ring-2 ring-orange-500">
-                    <button onclick="simpanBuku()" class="bg-orange-500 text-white font-black rounded-2xl hover:bg-orange-600 transition-all uppercase text-xs">Simpan 💾</button>
+                    <button onclick="simpanBuku()" class="bg-emerald-500 text-white font-black rounded-2xl hover:bg-emerald-600 shadow-lg shadow-emerald-100 transition-all uppercase text-xs">Simpan Buku 💾</button>
                 </div>
             </div>
         </div>
@@ -38,14 +56,13 @@
                         <th class="p-4 text-center">Aksi</th>
                     </tr>
                 </thead>
-                <tbody id="listBuku" class="text-xs font-bold text-slate-600">
-                    </tbody>
+                <tbody id="listBuku" class="text-xs font-bold text-slate-600 italic">
+                </tbody>
             </table>
         </div>
     </div>
 
     <script>
-        // CONFIG FIREBASE ASLI PROYEK E-PERPUS BAPAK
         const firebaseConfig = {
             apiKey: "AIzaSyBXt0gEgczYD1jQ9OhNk5FGN8CePIFaSYw",
             authDomain: "e-perpus-a652c.firebaseapp.com",
@@ -57,11 +74,40 @@
             measurementId: "G-P459EVKKTV"
         };
         
-        // Inisialisasi Firebase
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+
+        let scannerInstance = null;
+
+        // FUNGSI SCANNER
+        async function bukaScanner() {
+            const area = document.getElementById('scannerArea');
+            area.classList.remove('hidden');
+            if (scannerInstance) { try { await scannerInstance.stop(); } catch(e) {} }
+            
+            scannerInstance = new Html5Qrcode("reader");
+            const config = { fps: 20, qrbox: { width: 250, height: 150 }, aspectRatio: 1.0 };
+
+            scannerInstance.start(
+                { facingMode: "environment" }, 
+                config, 
+                (decodedText) => {
+                    document.getElementById('isbn').value = decodedText;
+                    tutupScanner();
+                    // Bunyi bip sukses bisa ditambah di sini
+                }
+            ).catch(err => {
+                alert("Gagal buka kamera: " + err);
+                area.classList.add('hidden');
+            });
+        }
+
+        async function tutupScanner() {
+            if (scannerInstance) {
+                try { await scannerInstance.stop(); scannerInstance = null; } catch (err) {}
+            }
+            document.getElementById('scannerArea').classList.add('hidden');
+        }
 
         function simpanBuku() {
             const isbn = document.getElementById('isbn').value.trim();
@@ -78,32 +124,32 @@
                     stok_total: stok,
                     stok_tersedia: stok
                 }).then(() => {
-                    alert("Buku Berhasil Terdaftar!");
+                    alert("Buku: " + judul + " Berhasil Terdaftar!");
                     document.querySelectorAll('input').forEach(i => i.value = "");
-                }).catch(err => {
-                    alert("Gagal simpan: " + err.message);
                 });
             } else { 
-                alert("Minimal Kode, Judul, dan Stok harus diisi dengan benar!"); 
+                alert("Mohon isi minimal Kode, Judul, dan Stok!"); 
             }
         }
 
-        // Tampilkan Data Real-Time
         db.ref('koleksi_buku').on('value', snap => {
             const table = document.getElementById('listBuku');
             table.innerHTML = "";
             snap.forEach(bukuSnap => {
                 const b = bukuSnap.val();
                 table.innerHTML += `
-                    <tr class="border-b border-slate-50 hover:bg-slate-50">
+                    <tr class="border-b border-slate-50 hover:bg-orange-50/30 transition-all">
                         <td class="p-4 font-black text-orange-600">${b.isbn}</td>
                         <td class="p-4 uppercase">${b.judul}</td>
-                        <td class="p-4 text-center">${b.stok_tersedia} / ${b.stok_total}</td>
                         <td class="p-4 text-center">
-                            <button onclick="hapusBuku('${b.isbn}')" class="text-red-400 hover:text-red-600 transition-colors">🗑️ Hapus</button>
+                            <span class="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-[10px] font-black">
+                                ${b.stok_tersedia} / ${b.stok_total}
+                            </span>
                         </td>
-                    </tr>
-                `;
+                        <td class="p-4 text-center">
+                            <button onclick="hapusBuku('${b.isbn}')" class="text-red-400 hover:text-red-600 transition-colors text-lg">🗑️</button>
+                        </td>
+                    </tr>`;
             });
         });
 
