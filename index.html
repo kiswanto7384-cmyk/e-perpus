@@ -3,45 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Menu Utama E-Perpus</title>
+    <title>E-Perpus - Digital Signage</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes slow-zoom {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .bg-animate {
+            animation: slow-zoom 20s infinite ease-in-out;
+        }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
 </head>
-<body class="bg-slate-100 min-h-screen flex items-center justify-center p-6">
+<body class="bg-slate-900 min-h-screen overflow-hidden text-white font-sans cursor-pointer" onclick="location.href='menu-perpus.html'">
 
-    <div class="max-w-md w-full space-y-6">
-        <div class="text-center mb-8">
-            <h1 class="text-4xl font-black text-indigo-900 italic tracking-tighter">E-PERPUS 📚</h1>
-            <p class="text-slate-500 font-bold uppercase text-[10px] tracking-[0.3em]">Sistem Literasi Sekolah</p>
-        </div>
-
-        <div class="grid grid-cols-1 gap-4">
-            <a href="sirkulasi.html" class="bg-indigo-600 hover:bg-indigo-700 text-white p-6 rounded-[2rem] shadow-lg flex items-center gap-4 transition-all hover:scale-105 group">
-                <span class="text-3xl bg-white/20 p-3 rounded-2xl group-hover:rotate-12 transition-transform">🔄</span>
-                <div class="text-left">
-                    <h2 class="font-black text-sm uppercase">Sirkulasi</h2>
-                    <p class="text-[10px] opacity-70">Pinjam & Kembalikan Buku</p>
-                </div>
-            </a>
-
-            <a href="pendaftaran-anggota.html" class="bg-emerald-500 hover:bg-emerald-600 text-white p-6 rounded-[2rem] shadow-lg flex items-center gap-4 transition-all hover:scale-105 group border-b-4 border-emerald-700">
-                <span class="text-3xl bg-white/20 p-3 rounded-2xl group-hover:rotate-12 transition-transform">👤</span>
-                <div class="text-left">
-                    <h2 class="font-black text-sm uppercase">Pendaftaran</h2>
-                    <p class="text-[10px] opacity-70">Daftar Anggota Baru (Kartu Kantin)</p>
-                </div>
-            </a>
-
-            <a href="admin-buku.html" class="bg-orange-500 hover:bg-orange-600 text-white p-6 rounded-[2rem] shadow-lg flex items-center gap-4 transition-all hover:scale-105 group border-b-4 border-orange-700">
-                <span class="text-3xl bg-white/20 p-3 rounded-2xl group-hover:rotate-12 transition-transform">📚</span>
-                <div class="text-left">
-                    <h2 class="font-black text-sm uppercase">Katalog Buku</h2>
-                    <p class="text-[10px] opacity-70">Input & Kelola Stok Buku</p>
-                </div>
-            </a>
-        </div>
-
-        <p class="text-center text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-10">© 2024 E-Perpus Integrated System</p>
+    <div class="fixed inset-0 z-0">
+        <img src="https://images.unsplash.com/photo-1507842217343-583bb7270b66?q=80&w=2000" 
+             class="w-full h-full object-cover opacity-40 bg-animate" alt="Library Background">
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-slate-900"></div>
     </div>
 
+    <div class="relative z-10 flex flex-col items-center justify-between min-h-screen p-8 pb-16">
+        
+        <div class="text-center mt-10">
+            <h2 id="clock" class="text-6xl font-black tracking-tighter">00:00</h2>
+            <p class="text-xs font-bold uppercase tracking-[0.4em] opacity-70">Senin, 02 Februari 2026</p>
+        </div>
+
+        <div class="w-full max-w-md">
+            <div class="text-center mb-6">
+                <span class="bg-yellow-500 text-slate-900 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">🏆 Duta Literasi Minggu Ini</span>
+            </div>
+            
+            <div id="podiumWallpaper" class="flex items-end justify-around h-48 mb-4">
+                </div>
+        </div>
+
+        <div class="text-center animate-bounce">
+            <p class="text-[10px] font-black uppercase tracking-[0.3em] opacity-50">Ketuk layar untuk masuk ke Dashboard 👆</p>
+        </div>
+    </div>
+
+    <script>
+        // CONFIG FIREBASE
+        const firebaseConfig = {
+            apiKey: "AIzaSyBXt0gEgczYD1jQ9OhNk5FGN8CePIFaSYw",
+            authDomain: "e-perpus-a652c.firebaseapp.com",
+            databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "e-perpus-a652c"
+        };
+        
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Update Jam Realtime
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').innerText = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Ambil Data Peringkat
+        db.ref('perpus_laporan').on('value', snap => {
+            const data = snap.val();
+            if (!data) return;
+
+            const counts = {};
+            Object.values(data).forEach(log => {
+                const key = log.namaSiswa;
+                counts[key] = (counts[key] || 0) + 1;
+            });
+
+            const sorted = Object.keys(counts).map(nama => ({
+                nama, total: counts[nama]
+            })).sort((a, b) => b.total - a.total).slice(0, 3);
+
+            renderPodium(sorted);
+        });
+
+        function renderPodium(top3) {
+            const podiumEl = document.getElementById('podiumWallpaper');
+            if(top3.length < 1) return;
+            
+            // Urutan 2, 1, 3
+            const displayOrder = [top3[1], top3[0], top3[2]];
+            
+            podiumEl.innerHTML = displayOrder.map((s, i) => {
+                if(!s) return `<div class="w-1/3"></div>`;
+                const isFirst = s.nama === top3[0].nama;
+                const height = isFirst ? 'h-32' : (i === 0 ? 'h-24' : 'h-20');
+                const glow = isFirst ? 'shadow-[0_0_30px_rgba(234,179,8,0.3)]' : '';
+                
+                return `
+                    <div class="flex flex-col items-center w-1/3 px-1">
+                        <div class="glass-effect ${height} w-full rounded-2xl flex flex-col items-center justify-center border-white/20 ${glow}">
+                            <span class="${isFirst ? 'text-3xl' : 'text-xl'} mb-1">${isFirst ? '🥇' : (i === 0 ? '🥈' : '🥉')}</span>
+                            <p class="text-[9px] font-black uppercase truncate w-full px-2 text-center">${s.nama}</p>
+                            <p class="text-xl font-black mt-1">${s.total}</p>
+                            <p class="text-[7px] font-bold opacity-50 uppercase">Buku</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+    </script>
 </body>
 </html>
