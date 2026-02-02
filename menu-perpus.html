@@ -5,84 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard E-Perpus</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    </style>
 </head>
-<body class="bg-slate-100 min-h-screen">
-
-    <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-3 mb-6">
-        <div class="max-w-4xl mx-auto flex justify-between items-center">
-            <a href="menu-perpus.html" class="flex items-center gap-2">
-                <span class="text-xl">📚</span>
-                <span class="font-black text-indigo-900 italic text-sm tracking-tighter uppercase">E-Perpus</span>
-            </a>
-            <div class="flex gap-2 overflow-x-auto no-scrollbar ml-4">
-                <a href="sirkulasi.html" class="whitespace-nowrap px-3 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-indigo-50 transition-colors text-slate-600">🔄 Sirkulasi</a>
-                <a href="katalog.html" class="whitespace-nowrap px-3 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-orange-50 transition-colors text-slate-600">📖 Katalog</a>
-                <a href="daftar-anggota.html" class="whitespace-nowrap px-3 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-emerald-50 transition-colors text-slate-600">👤 Member</a>
-                <a href="log-sirkulasi.html" class="whitespace-nowrap px-3 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-slate-100 transition-colors text-slate-600">📜 Log</a>
-            </div>
-        </div>
-    </nav>
-
-    <div class="max-w-4xl mx-auto p-6 flex flex-col items-center justify-center min-h-[80vh]">
+<body class="bg-slate-100 min-h-screen flex flex-col items-center p-6">
+    <div class="max-w-md w-full space-y-4 pt-10">
         <div class="text-center mb-10">
-            <h1 class="text-4xl font-black text-indigo-900 italic uppercase">E-Perpus Dashboard 📚</h1>
-            <p class="text-slate-500 font-bold uppercase tracking-widest text-xs mt-2">Sistem Perpustakaan Terintegrasi E-Kantin</p>
+            <h1 class="text-4xl font-black text-indigo-900 italic tracking-tighter uppercase leading-none">E-Perpus Dashboard</h1>
+            <p class="text-slate-500 font-bold uppercase text-[9px] tracking-[0.4em] mt-2">Sistem Informasi Perpustakaan</p>
         </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-            
-            <a href="sirkulasi.html" class="group bg-indigo-600 p-8 rounded-[3rem] shadow-xl hover:bg-indigo-700 transition-all border-b-8 border-indigo-900">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h2 class="text-white text-2xl font-black uppercase italic">Sirkulasi</h2>
-                        <p class="text-indigo-200 text-xs font-bold">Pinjam & Kembali Buku</p>
-                    </div>
-                    <span class="text-4xl group-hover:scale-110 transition-transform">🔄</span>
-                </div>
+        <div class="grid grid-cols-1 gap-4">
+            <a href="sirkulasi.html" class="bg-indigo-600 p-6 rounded-[2.5rem] shadow-xl flex items-center gap-5 transition-all hover:scale-105 active:scale-95 border-b-8 border-indigo-900 group">
+                <span class="text-3xl bg-white/20 p-4 rounded-3xl">🔄</span>
+                <div class="text-white"><h2 class="font-black text-sm uppercase italic">Sirkulasi</h2><p class="text-[9px] opacity-70 font-bold uppercase">Pinjam & Kembali Buku</p></div>
             </a>
-
-            <a href="katalog.html" class="group bg-orange-500 p-8 rounded-[3rem] shadow-xl hover:bg-orange-600 transition-all border-b-8 border-orange-700">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h2 class="text-white text-2xl font-black uppercase italic">Katalog</h2>
-                        <p class="text-orange-100 text-xs font-bold">Input Stok Buku Baru</p>
-                    </div>
-                    <span class="text-4xl group-hover:scale-110 transition-transform">📖</span>
-                </div>
+            <a href="katalog.html" class="bg-orange-500 p-6 rounded-[2.5rem] shadow-xl flex items-center gap-5 transition-all hover:scale-105 active:scale-95 border-b-8 border-orange-700">
+                <span class="text-3xl bg-white/20 p-4 rounded-3xl">📖</span>
+                <div class="text-white"><h2 class="font-black text-sm uppercase italic">Katalog Buku</h2><p class="text-[9px] opacity-70 font-bold uppercase">Kelola Stok & Barcode</p></div>
             </a>
-
-            <a href="daftar-anggota.html" class="group bg-emerald-500 p-8 rounded-[3rem] shadow-xl hover:bg-emerald-600 transition-all border-b-8 border-emerald-700">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h2 class="text-white text-2xl font-black uppercase italic">Anggota</h2>
-                        <p class="text-emerald-100 text-xs font-bold">Daftar Member Baru</p>
-                    </div>
-                    <span class="text-4xl group-hover:scale-110 transition-transform">👤</span>
-                </div>
+            <a href="daftar-anggota.html" class="bg-emerald-500 p-6 rounded-[2.5rem] shadow-xl flex items-center gap-5 transition-all hover:scale-105 active:scale-95 border-b-8 border-emerald-700">
+                <span class="text-3xl bg-white/20 p-4 rounded-3xl">👤</span>
+                <div class="text-white"><h2 class="font-black text-sm uppercase italic">Member</h2><p class="text-[9px] opacity-70 font-bold uppercase">Registrasi dari E-Kantin</p></div>
             </a>
-
-            <a href="log-sirkulasi.html" class="group bg-slate-800 p-8 rounded-[3rem] shadow-xl hover:bg-slate-900 transition-all border-b-8 border-black">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h2 class="text-white text-2xl font-black uppercase italic">Laporan</h2>
-                        <p class="text-slate-400 text-xs font-bold">Riwayat Transaksi</p>
-                    </div>
-                    <span class="text-4xl group-hover:scale-110 transition-transform">📜</span>
-                </div>
+            <a href="log-sirkulasi.html" class="bg-slate-800 p-6 rounded-[2.5rem] shadow-xl flex items-center gap-5 transition-all hover:scale-105 active:scale-95 border-b-8 border-black">
+                <span class="text-3xl bg-white/20 p-4 rounded-3xl">📜</span>
+                <div class="text-white"><h2 class="font-black text-sm uppercase italic">Laporan</h2><p class="text-[9px] opacity-70 font-bold uppercase">Riwayat Transaksi</p></div>
             </a>
-
-        </div>
-
-        <div class="mt-12 text-center">
-            <button onclick="location.href='../kantin/index.html'" class="text-slate-400 font-black text-[10px] uppercase tracking-[0.3em] hover:text-indigo-600 transition-colors">
-                ⬅️ Kembali ke Menu Utama Kantin
-            </button>
         </div>
     </div>
 
+    <script>
+        let timerIdle;
+        function resetTimer() { clearTimeout(timerIdle); timerIdle = setTimeout(() => { location.href = 'index.html'; }, 300000); }
+        window.onload = resetTimer; window.onmousemove = resetTimer; window.onmousedown = resetTimer; window.onclick = resetTimer; window.onkeypress = resetTimer;
+    </script>
 </body>
 </html>
