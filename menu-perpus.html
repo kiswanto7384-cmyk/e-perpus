@@ -3,39 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard E-Perpus</title>
+    <title>Menu Utama - E-Perpus SDN 165</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .card-shadow { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
+        .tap-effect:active { transform: scale(0.95); transition: 0.1s; }
+    </style>
 </head>
-<body class="bg-slate-100 min-h-screen flex flex-col items-center p-6">
-    <div class="max-w-md w-full space-y-4 pt-10">
-        <div class="text-center mb-10">
-            <h1 class="text-4xl font-black text-indigo-900 italic tracking-tighter uppercase leading-none">E-Perpus Dashboard</h1>
-            <p class="text-slate-500 font-bold uppercase text-[9px] tracking-[0.4em] mt-2">Sistem Informasi Perpustakaan</p>
-        </div>
-        <div class="grid grid-cols-1 gap-4">
-            <a href="sirkulasi.html" class="bg-indigo-600 p-6 rounded-[2.5rem] shadow-xl flex items-center gap-5 transition-all hover:scale-105 active:scale-95 border-b-8 border-indigo-900 group">
-                <span class="text-3xl bg-white/20 p-4 rounded-3xl">🔄</span>
-                <div class="text-white"><h2 class="font-black text-sm uppercase italic">Sirkulasi</h2><p class="text-[9px] opacity-70 font-bold uppercase">Pinjam & Kembali Buku</p></div>
-            </a>
-            <a href="katalog.html" class="bg-orange-500 p-6 rounded-[2.5rem] shadow-xl flex items-center gap-5 transition-all hover:scale-105 active:scale-95 border-b-8 border-orange-700">
-                <span class="text-3xl bg-white/20 p-4 rounded-3xl">📖</span>
-                <div class="text-white"><h2 class="font-black text-sm uppercase italic">Katalog Buku</h2><p class="text-[9px] opacity-70 font-bold uppercase">Kelola Stok & Barcode</p></div>
-            </a>
-            <a href="daftar-anggota.html" class="bg-emerald-500 p-6 rounded-[2.5rem] shadow-xl flex items-center gap-5 transition-all hover:scale-105 active:scale-95 border-b-8 border-emerald-700">
-                <span class="text-3xl bg-white/20 p-4 rounded-3xl">👤</span>
-                <div class="text-white"><h2 class="font-black text-sm uppercase italic">Member</h2><p class="text-[9px] opacity-70 font-bold uppercase">Registrasi dari E-Kantin</p></div>
-            </a>
-            <a href="log-sirkulasi.html" class="bg-slate-800 p-6 rounded-[2.5rem] shadow-xl flex items-center gap-5 transition-all hover:scale-105 active:scale-95 border-b-8 border-black">
-                <span class="text-3xl bg-white/20 p-4 rounded-3xl">📜</span>
-                <div class="text-white"><h2 class="font-black text-sm uppercase italic">Laporan</h2><p class="text-[9px] opacity-70 font-bold uppercase">Riwayat Transaksi</p></div>
-            </a>
-        </div>
-    </div>
+<body class="bg-slate-50 min-h-screen font-sans antialiased text-slate-900">
 
-    <script>
-        let timerIdle;
-        function resetTimer() { clearTimeout(timerIdle); timerIdle = setTimeout(() => { location.href = 'index.html'; }, 300000); }
-        window.onload = resetTimer; window.onmousemove = resetTimer; window.onmousedown = resetTimer; window.onclick = resetTimer; window.onkeypress = resetTimer;
-    </script>
+    <header class="bg-indigo-900 text-white pt-12 pb-24 px-6 rounded-b-[3rem] shadow-2xl">
+        <div class="max-w-xl mx-auto flex justify-between items-center">
+            <div>
+                <p class="text-indigo-200 text-xs font-bold uppercase tracking-widest mb-1">Selamat Bertugas,</p>
+                <h1 class="text-2xl font-black italic tracking-tight">PETUGAS PERPUS 📚</h1>
+            </div>
+            <div class="h-12 w-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl shadow-inner">👤</div>
+        </div>
+    </header>
+
+    <main class="max-w-xl mx-auto px-6 -mt-16">
+        <div class="grid grid-cols-2 gap-4">
+            
+            <a href="sirkulasi.html" class="tap-effect bg-white p-6 rounded-[2.5rem] card-shadow border border-slate-100 flex flex-col items-center text-center">
+                <div class="h-16 w-16 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center text-3xl mb-4 shadow-sm">🔄</div>
+                <h3 class="font-black uppercase italic text-[11px] tracking-tight">Sirkulasi</h3>
+                <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase">Pinjam & Kembali</p>
+            </a>
+
+            <a href="katalog.html" class="tap-effect bg-white p-6 rounded-[2.5rem] card-shadow border border-slate-100 flex flex-col items-center text-center">
+                <div class="h-16 w-16 bg-orange-50 text-orange-600 rounded-3xl flex items-center justify-center text-3xl mb-4 shadow-sm">📖</div>
+                <h3 class="font-black uppercase italic text-[11px] tracking-tight">Katalog</h3>
+                <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase">Manajemen Buku</p>
+            </a>
+
+            <a href="daftar-anggota.html" class="tap-effect bg-white p-6 rounded-[2.5rem] card-shadow border border-slate-100 flex flex-col items-center text-center">
+                <div class="h-16 w-16 bg-emerald-50 text-emerald-600 rounded-3xl flex items-center justify-center text-3xl mb-4 shadow-sm">👤</div>
+                <h3 class="font-black uppercase italic text-[11px] tracking-tight">Anggota</h3>
+                <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase">Daftar Member</p>
+            </a>
+
+            <a href="index.html" class="tap-effect bg-white p-6 rounded-[2.5rem] card-shadow border border-slate-100 flex flex-col items-center text-center">
+                <div class="h-16 w-16 bg-red-50 text-red-600 rounded-3xl flex items-center justify-center text-3xl mb-4 shadow-sm">🔒</div>
+                <h3 class="font-black uppercase italic text-[11px] tracking-tight">Kunci</h3>
+                <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase">Keluar Sistem</p>
+            </a>
+
+        </div>
+
+        <div class="mt-10 mb-10">
+            <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] ml-4 mb-3 italic text-center">Akses Terbatas Admin</h4>
+            <a href="admin-cek-log.html" class="tap-effect bg-slate-900 text-white p-5 rounded-[2rem] flex items-center gap-4 shadow-xl border-b-4 border-slate-700">
+                <div class="h-12 w-12 bg-white/10 rounded-2xl flex items-center justify-center text-xl">🕵️</div>
+                <div>
+                    <h3 class="font-black uppercase italic text-[11px] tracking-widest">Monitoring Guru</h3>
+                    <p class="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Cek OTP & Log Kecurangan Siswa</p>
+                </div>
+                <div class="ml-auto text-indigo-400 text-xl">→</div>
+            </a>
+        </div>
+
+        <footer class="text-center pb-10">
+            <p class="text-[9px] font-black text-slate-300 uppercase tracking-widest leading-loose">
+                SDN 165 TJB - DIGITAL LIBRARY SYSTEM<br>
+                <span class="text-slate-200">v2.0 Build 2024</span>
+            </p>
+        </footer>
+    </main>
+
 </body>
 </html>
