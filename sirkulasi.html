@@ -31,7 +31,12 @@
         <div class="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100">
             <h1 class="text-xl font-black uppercase italic mb-6 text-blue-600">Form Transaksi 🔄</h1>
             
-            <p class="text-slate-400 text-xs italic">Sistem siap digunakan setelah OTP diverifikasi.</p>
+            <div id="kontenSirkulasi">
+                <p class="text-slate-500 text-sm font-bold uppercase italic tracking-tighter">Sistem Sirkulasi Aktif ✅</p>
+                <hr class="my-4 border-slate-100">
+                <input type="text" placeholder="Scan Kartu / ID Siswa" class="w-full p-4 bg-slate-50 rounded-2xl border-2 border-slate-100 mb-4 font-bold outline-none focus:border-blue-500">
+                <button class="w-full bg-slate-800 text-white font-black py-4 rounded-2xl uppercase italic text-[10px] tracking-widest">Cek Pinjaman</button>
+            </div>
         </div>
     </div>
 
@@ -45,7 +50,14 @@
 
         let kodeOTPBenar = "";
 
-        // 1. Ambil kode OTP aktif dari Firebase (Sinkron dengan Admin)
+        // --- CEK SESI (Agar tidak minta OTP berulang kali) ---
+        function cekAkses() {
+            if (sessionStorage.getItem("aksesEPerpus") === "aktif") {
+                document.getElementById('otpOverlay').classList.add('hidden');
+            }
+        }
+
+        // 1. Ambil kode OTP aktif dari Firebase
         db.ref('sistem_keamanan/otp_katalog').on('value', snap => {
             if(snap.exists()) {
                 kodeOTPBenar = snap.val().kode;
@@ -56,16 +68,19 @@
         function verifikasiOTP() {
             const input = document.getElementById('inputOTP').value;
             if(input === kodeOTPBenar) {
-                // Update status di dashboard admin Bapak
-                db.ref('sistem_keamanan/otp_katalog/status').set("SEDANG TRANSAKSI (SIRKULASI)");
+                // SIMPAN STATUS AKSES DI BROWSER
+                sessionStorage.setItem("aksesEPerpus", "aktif");
                 
-                // Hilangkan layar kunci
+                db.ref('sistem_keamanan/otp_katalog/status').set("SEDANG TRANSAKSI (SIRKULASI)");
                 document.getElementById('otpOverlay').classList.add('hidden');
             } else {
                 alert("KODE SALAH! Cek di HP Pak Kiswanto");
                 document.getElementById('inputOTP').value = "";
             }
         }
+
+        // Jalankan pengecekan saat halaman dimuat
+        window.onload = cekAkses;
     </script>
 </body>
 </html>
