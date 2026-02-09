@@ -8,34 +8,57 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-50 min-h-screen">
+<body class="bg-slate-50 min-h-screen pb-10">
 
     <div id="otpOverlay" class="fixed inset-0 z-[100] bg-slate-900 flex items-center justify-center p-6">
         <div class="bg-white p-8 rounded-[3rem] shadow-2xl max-w-sm w-full text-center border-b-8 border-blue-600">
             <div class="mb-6">
                 <span class="text-5xl">🔐</span>
                 <h2 class="text-xl font-black uppercase italic mt-4 text-slate-800">Akses Sirkulasi</h2>
-                <p class="text-[10px] font-bold text-slate-400 tracking-widest uppercase">Minta kode ke Pak Kiswanto</p>
+                <p class="text-[10px] font-bold text-slate-400 tracking-widest uppercase mb-4">Minta kode ke Pak Kiswanto</p>
+                <input type="number" id="inputOTP" placeholder="KODE OTP" class="w-full text-center text-3xl font-black tracking-[0.5em] p-4 bg-slate-100 rounded-3xl outline-none focus:ring-4 ring-blue-500/20">
             </div>
-            <input type="number" id="inputOTP" placeholder="KODE OTP" class="w-full text-center text-3xl font-black tracking-[0.5em] p-4 bg-slate-100 rounded-3xl mb-4 outline-none focus:ring-4 ring-blue-500/20 transition-all">
-            <button onclick="verifikasiOTP()" class="w-full bg-blue-600 text-white font-black py-5 rounded-3xl shadow-lg hover:bg-blue-700 transition-all uppercase italic text-xs tracking-widest">Buka Akses Sirkulasi 🔓</button>
+            <button onclick="verifikasiOTP()" class="w-full bg-blue-600 text-white font-black py-5 rounded-3xl shadow-lg hover:bg-blue-700 transition-all uppercase italic text-xs tracking-widest">Buka Akses 🔓</button>
         </div>
     </div>
 
-    <nav class="bg-white border-b px-4 py-3 flex justify-between items-center shadow-sm">
-        <a href="menu-perpus.html" class="text-blue-600 font-black italic uppercase text-sm">← Kembali</a>
-        <span class="font-black text-slate-800 uppercase text-xs italic tracking-tighter">Sirkulasi Buku</span>
+    <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-3 mb-6">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <a href="menu-perpus.html" class="flex items-center gap-2">
+                <span class="text-xl">📚</span>
+                <span class="font-black text-blue-900 italic text-sm uppercase">E-Perpus</span>
+            </a>
+            <div class="flex gap-2">
+                <a href="log-sirkulasi.html" class="px-3 py-2 rounded-xl text-[9px] font-black uppercase bg-slate-100 text-slate-600">📜 Lihat Log</a>
+            </div>
+        </div>
     </nav>
 
-    <div class="p-6 max-w-xl mx-auto">
-        <div class="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100">
-            <h1 class="text-xl font-black uppercase italic mb-6 text-blue-600">Form Transaksi 🔄</h1>
-            
-            <div id="kontenSirkulasi">
-                <p class="text-slate-500 text-sm font-bold uppercase italic tracking-tighter">Sistem Sirkulasi Aktif ✅</p>
-                <hr class="my-4 border-slate-100">
-                <input type="text" placeholder="Scan Kartu / ID Siswa" class="w-full p-4 bg-slate-50 rounded-2xl border-2 border-slate-100 mb-4 font-bold outline-none focus:border-blue-500">
-                <button class="w-full bg-slate-800 text-white font-black py-4 rounded-2xl uppercase italic text-[10px] tracking-widest">Cek Pinjaman</button>
+    <div class="max-w-2xl mx-auto px-4">
+        <div class="bg-blue-600 text-white p-8 rounded-[2.5rem] shadow-xl mb-6 border-b-8 border-blue-800">
+            <h1 class="text-2xl font-black uppercase italic leading-none">Transaksi Buku 🔄</h1>
+            <p class="text-[10px] font-bold opacity-80 uppercase tracking-widest mt-2">Peminjaman & Pengembalian Cepat</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200 space-y-4">
+            <div>
+                <label class="text-[8px] font-black text-slate-400 ml-3 uppercase">Nomor Induk Siswa (NIS)</label>
+                <input type="text" id="nisSiswa" onchange="cariSiswa()" placeholder="SCAN KARTU / KETIK NIS..." class="w-full p-5 bg-slate-50 rounded-2xl font-black outline-none border-2 border-transparent focus:border-blue-500 uppercase tracking-widest">
+            </div>
+
+            <div id="infoSiswa" class="hidden p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                <p id="namaSiswaDisplay" class="font-black text-blue-900 uppercase text-sm"></p>
+                <p id="kelasSiswaDisplay" class="text-[10px] font-bold text-blue-500 uppercase"></p>
+            </div>
+
+            <div>
+                <label class="text-[8px] font-black text-slate-400 ml-3 uppercase">Barcode Buku</label>
+                <input type="text" id="barcodeBuku" placeholder="SCAN BARCODE BUKU..." class="w-full p-5 bg-slate-50 rounded-2xl font-black outline-none border-2 border-transparent focus:border-blue-500 uppercase tracking-widest">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="prosesTransaksi('PINJAM')" class="bg-blue-600 text-white font-black py-5 rounded-3xl shadow-lg hover:bg-blue-700 transition-all uppercase italic text-xs">Pinjam Buku 📤</button>
+                <button onclick="prosesTransaksi('KEMBALI')" class="bg-emerald-500 text-white font-black py-5 rounded-3xl shadow-lg hover:bg-emerald-600 transition-all uppercase italic text-xs">Kembali Buku 📥</button>
             </div>
         </div>
     </div>
@@ -50,37 +73,88 @@
 
         let kodeOTPBenar = "";
 
-        // --- CEK SESI (Agar tidak minta OTP berulang kali) ---
-        function cekAkses() {
+        // --- SISTEM SESI & OTP ---
+        function cekSesi() {
             if (sessionStorage.getItem("aksesEPerpus") === "aktif") {
                 document.getElementById('otpOverlay').classList.add('hidden');
             }
         }
 
-        // 1. Ambil kode OTP aktif dari Firebase
         db.ref('sistem_keamanan/otp_katalog').on('value', snap => {
-            if(snap.exists()) {
-                kodeOTPBenar = snap.val().kode;
-            }
+            if(snap.exists()) kodeOTPBenar = snap.val().kode;
         });
 
-        // 2. Fungsi Verifikasi
         function verifikasiOTP() {
-            const input = document.getElementById('inputOTP').value;
-            if(input === kodeOTPBenar) {
-                // SIMPAN STATUS AKSES DI BROWSER
+            if(document.getElementById('inputOTP').value === kodeOTPBenar) {
                 sessionStorage.setItem("aksesEPerpus", "aktif");
-                
-                db.ref('sistem_keamanan/otp_katalog/status').set("SEDANG TRANSAKSI (SIRKULASI)");
                 document.getElementById('otpOverlay').classList.add('hidden');
+                db.ref('sistem_keamanan/otp_katalog/status').set("SEDANG TRANSAKSI");
             } else {
-                alert("KODE SALAH! Cek di HP Pak Kiswanto");
-                document.getElementById('inputOTP').value = "";
+                alert("KODE SALAH!");
             }
         }
 
-        // Jalankan pengecekan saat halaman dimuat
-        window.onload = cekAkses;
+        // --- FUNGSI TRANSAKSI KEREN ---
+        function cariSiswa() {
+            const nis = document.getElementById('nisSiswa').value;
+            db.ref('daftar_anggota/' + nis).once('value', snap => {
+                if(snap.exists()){
+                    const s = snap.val();
+                    document.getElementById('infoSiswa').classList.remove('hidden');
+                    document.getElementById('namaSiswaDisplay').innerText = s.nama;
+                    document.getElementById('kelasSiswaDisplay').innerText = "Kelas: " + s.kelas;
+                } else {
+                    alert("Siswa tidak ditemukan!");
+                    document.getElementById('infoSiswa').classList.add('hidden');
+                }
+            });
+        }
+
+        function prosesTransaksi(tipe) {
+            const nis = document.getElementById('nisSiswa').value;
+            const barcode = document.getElementById('barcodeBuku').value;
+            const nama = document.getElementById('namaSiswaDisplay').innerText;
+            
+            if(!nis || !barcode) return alert("Lengkapi Data!");
+
+            // Ambil data buku dulu untuk tahu judulnya
+            db.ref('koleksi_buku/' + barcode).once('value', snap => {
+                if(!snap.exists()) return alert("Buku tidak terdaftar!");
+                
+                const buku = snap.val();
+                const tgl = new Date().toLocaleString('id-ID');
+                const logRef = db.ref('perpus_laporan').push();
+
+                if(tipe === 'PINJAM') {
+                    logRef.set({
+                        idSiswa: nis,
+                        namaSiswa: nama,
+                        judulBuku: buku.judul,
+                        tglPinjam: tgl,
+                        status: "DIPINJAM"
+                    });
+                    // Kurangi stok
+                    db.ref('koleksi_buku/' + barcode).update({ stok_tersedia: buku.stok_tersedia - 1 });
+                } else {
+                    // Logika Kembali (Cari data pinjaman terakhir)
+                    // Untuk kesederhanaan, kita buat log baru dengan status KEMBALI
+                    logRef.set({
+                        idSiswa: nis,
+                        namaSiswa: nama,
+                        judulBuku: buku.judul,
+                        tglKembali: tgl,
+                        status: "DIKEMBALIKAN"
+                    });
+                    // Tambah stok
+                    db.ref('koleksi_buku/' + barcode).update({ stok_tersedia: buku.stok_tersedia + 1 });
+                }
+                
+                alert("Transaksi " + tipe + " Berhasil!");
+                location.reload();
+            });
+        }
+
+        window.onload = cekSesi;
     </script>
 </body>
 </html>
