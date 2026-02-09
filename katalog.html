@@ -11,9 +11,24 @@
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* Animasi halu untuk overlay */
+        .glass-effect { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px); }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen pb-10">
+
+    <div id="lockScreen" class="fixed inset-0 z-[100] glass-effect flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-xs rounded-[2.5rem] p-8 text-center shadow-2xl border-b-[10px] border-orange-600">
+            <div class="text-4xl mb-4">🔐</div>
+            <h2 class="font-black text-slate-800 uppercase italic leading-none">Akses Katalog</h2>
+            <p class="text-[9px] font-bold text-slate-400 uppercase mt-2 mb-6 tracking-wider">Minta Kode OTP ke Admin:<br><span class="text-orange-600">082177723494</span></p>
+            
+            <input type="number" id="otpInput" placeholder="KODE 4-DIGIT" class="w-full p-4 bg-slate-100 rounded-2xl text-center font-black text-2xl tracking-[0.5em] mb-4 outline-none border-2 border-transparent focus:border-orange-500">
+            
+            <button onclick="verifikasiOTP()" class="w-full bg-orange-600 text-white font-black py-4 rounded-2xl uppercase italic text-xs shadow-lg hover:bg-orange-700 transition-all">Buka Manajemen Buku 🚀</button>
+            <a href="index.html" class="block mt-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Kembali ke Beranda</a>
+        </div>
+    </div>
 
     <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-3 mb-6">
         <div class="max-w-4xl mx-auto flex justify-between items-center">
@@ -87,7 +102,6 @@
     </div>
 
     <script>
-        // Konfigurasi Firebase Bapak
         const firebaseConfig = {
             apiKey: "AIzaSyBXt0gEgczYD1jQ9OhNk5FGN8CePIFaSYw",
             databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app"
@@ -95,9 +109,42 @@
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        // --- SISTEM KEAMANAN OTP ---
+        let otpBenar = "";
+        
+        function generateOTP() {
+            // Buat kode 4 digit acak
+            otpBenar = Math.floor(1000 + Math.random() * 9000).toString();
+            // Simpan ke Firebase agar Bapak bisa cek
+            db.ref('sistem_keamanan/otp_katalog').set({
+                kode: otpBenar,
+                waktu: new Date().toLocaleString('id-ID'),
+                status: "MENUNGGU"
+            });
+            console.log("OTP Berhasil dibuat: " + otpBenar);
+        }
+
+        function verifikasiOTP() {
+            const input = document.getElementById('otpInput').value;
+            if(input === otpBenar) {
+                document.getElementById('lockScreen').classList.add('hidden');
+                db.ref('sistem_keamanan/otp_katalog').update({ status: "TERBUKA" });
+                alert("Akses Diterima! Silakan kelola buku.");
+            } else {
+                alert("KODE OTP SALAH! Hubungi Pak Kiswanto.");
+                document.getElementById('otpInput').value = "";
+            }
+        }
+
+        // Jalankan Generate OTP saat halaman dimuat
+        window.onload = () => {
+            generateOTP();
+            reset();
+        };
+
+        // --- LOGIKA UTAMA KATALOG ---
         let scannerInstance = null;
 
-        // Suara Beep saat scan berhasil
         const beep = () => {
             const context = new (window.AudioContext || window.webkitAudioContext)();
             const osc = context.createOscillator();
@@ -177,7 +224,7 @@
         // AUTO-LOCK 5 MENIT
         let idle;
         function reset() { clearTimeout(idle); idle = setTimeout(() => location.href='index.html', 300000); }
-        window.onload = reset; window.onmousemove = reset; window.onclick = reset;
+        window.onmousemove = reset; window.onclick = reset;
     </script>
 </body>
 </html>
