@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCTV Pahlawan & Perpus - Admin Kiswanto</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 min-h-screen p-4 font-sans text-slate-200">
+
+    <div class="max-w-4xl mx-auto">
+        
+        <div class="bg-orange-600 p-6 rounded-[2.5rem] shadow-xl mb-6 border-b-8 border-orange-800 flex justify-between items-center text-white">
+            <div>
+                <p class="text-[9px] font-black uppercase tracking-widest opacity-80 italic">OTP Katalog Perpus Aktif:</p>
+                <h2 id="monitorOTP" class="text-5xl font-black tracking-[0.2em] my-2">----</h2>
+                <p id="waktuOTP" class="text-[9px] opacity-70 font-bold uppercase tracking-widest italic tracking-tighter">Belum ada permintaan</p>
+            </div>
+            <div class="text-right">
+                <span id="statusOTP" class="bg-white/20 px-4 py-2 rounded-full text-[10px] font-black uppercase italic tracking-widest">OFFLINE</span>
+            </div>
+        </div>
+
+        <div class="bg-indigo-900 p-6 rounded-t-[2rem] shadow-2xl border-b-4 border-yellow-500">
+            <h1 class="text-2xl font-black italic tracking-tighter uppercase text-yellow-400">🕵️ CCTV & LOG AUDIT</h1>
+            <p class="text-[10px] font-bold text-indigo-300 uppercase tracking-[0.2em]">Memantau Kejujuran & Perubahan Sistem</p>
+        </div>
+
+        <div class="bg-white rounded-b-[2rem] overflow-hidden shadow-xl border-x-2 border-b-2 border-slate-200">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest">
+                            <th class="p-4 border-b">Waktu</th>
+                            <th class="p-4 border-b">Pelaku/Siswa</th>
+                            <th class="p-4 border-b">Aksi / XP Baru</th>
+                            <th class="p-4 border-b">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logTableBody" class="text-slate-800 text-xs font-medium">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="mt-6 flex justify-between items-center px-4">
+            <button onclick="hapusLog()" class="bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all">
+                🗑️ Bersihkan Riwayat
+            </button>
+            <p class="text-[9px] text-slate-500 uppercase font-bold italic">Admin SDN 165 TJB - v2.0</p>
+        </div>
+    </div>
+
+    <script>
+        // --- KONFIGURASI DATABASE PERPUS (DATABASE UTAMA SEKARANG) ---
+        const config = { 
+            databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app" 
+        };
+        if (!firebase.apps.length) firebase.initializeApp(config);
+        const db = firebase.database();
+
+        // 1. FUNGSI PANTAU OTP PERPUS
+        db.ref('sistem_keamanan/otp_katalog').on('value', snap => {
+            if(snap.exists()) {
+                const data = snap.val();
+                document.getElementById('monitorOTP').innerText = data.kode;
+                document.getElementById('waktuOTP').innerText = "Update: " + data.waktu;
+                document.getElementById('statusOTP').innerText = data.status;
+                
+                if(data.status === "TERBUKA") {
+                    document.getElementById('statusOTP').className = "bg-emerald-500 px-4 py-2 rounded-full text-[10px] font-black uppercase italic tracking-widest text-white shadow-lg";
+                } else {
+                    document.getElementById('statusOTP').className = "bg-red-600 px-4 py-2 rounded-full text-[10px] font-black uppercase italic tracking-widest text-white animate-pulse";
+                }
+            }
+        });
+
+        // 2. FUNGSI PANTAU LOG KECURANGAN (AUDIT LOG)
+        db.ref('audit_log').limitToLast(50).on('value', snap => {
+            const body = document.getElementById('logTableBody');
+            body.innerHTML = "";
+            
+            if(!snap.exists()){
+                body.innerHTML = `<tr><td colspan="4" class="p-10 text-center text-slate-400 italic font-bold uppercase">Belum ada aktivitas mencurigakan...</td></tr>`;
+                return;
+            }
+
+            snap.forEach(item => {
+                const log = item.val();
+                body.innerHTML = `
+                    <tr class="border-b border-slate-50 hover:bg-yellow-50 transition-colors italic">
+                        <td class="p-4 text-[10px] text-slate-400 font-mono">${log.waktu}</td>
+                        <td class="p-4 font-black text-indigo-700 uppercase">${log.nama_pengubah}</td>
+                        <td class="p-4 font-bold text-red-600">SET XP: ${log.xp_baru}</td>
+                        <td class="p-4">
+                            <span class="bg-red-100 text-red-700 text-[8px] px-2 py-1 rounded-full font-black uppercase leading-none">
+                                ${log.status || 'MODIFIKASI'}
+                            </span>
+                        </td>
+                    </tr>` + body.innerHTML;
+            });
+        });
+
+        function hapusLog() {
+            if(confirm("Apakah Bapak yakin ingin menghapus semua catatan riwayat ini?")) {
+                db.ref('audit_log').remove();
+                alert("Log dibersihkan!");
+            }
+        }
+    </script>
+</body>
+</html>
