@@ -14,6 +14,18 @@
 </head>
 <body class="bg-slate-50 min-h-screen pb-10">
 
+    <div id="otpOverlay" class="fixed inset-0 z-[100] bg-slate-900 flex items-center justify-center p-6">
+        <div class="bg-white p-8 rounded-[3rem] shadow-2xl max-w-sm w-full text-center border-b-8 border-indigo-600">
+            <div class="mb-6">
+                <span class="text-5xl">🔐</span>
+                <h2 class="text-xl font-black uppercase italic mt-4 text-slate-800">Akses Terkunci</h2>
+                <p class="text-[10px] font-bold text-slate-400 tracking-widest uppercase">Minta kode ke Pak Kiswanto</p>
+            </div>
+            <input type="number" id="inputOTP" placeholder="KODE OTP" class="w-full text-center text-3xl font-black tracking-[0.5em] p-4 bg-slate-100 rounded-3xl mb-4 outline-none focus:ring-4 ring-indigo-500/20 transition-all">
+            <button onclick="verifikasiOTP()" class="w-full bg-indigo-600 text-white font-black py-5 rounded-3xl shadow-lg hover:bg-indigo-700 transition-all uppercase italic text-xs tracking-widest">Buka Riwayat 🔓</button>
+        </div>
+    </div>
+
     <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-3 mb-6">
         <div class="max-w-6xl mx-auto flex justify-between items-center">
             <a href="menu-perpus.html" class="flex items-center gap-2">
@@ -53,8 +65,7 @@
                             <th class="p-5 whitespace-nowrap">Waktu Kembali</th>
                         </tr>
                     </thead>
-                    <tbody id="tabelLog" class="text-[11px] font-bold text-slate-600">
-                        </tbody>
+                    <tbody id="tabelLog" class="text-[11px] font-bold text-slate-600"></tbody>
                 </table>
             </div>
         </div>
@@ -63,54 +74,94 @@
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyBXt0gEgczYD1jQ9OhNk5FGN8CePIFaSYw",
-            authDomain: "e-perpus-a652c.firebaseapp.com",
-            databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "e-perpus-a652c"
+            databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app"
         };
-        
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // Ambil Data Log
-        db.ref('perpus_laporan').on('value', snap => {
-            const tbody = document.getElementById('tabelLog');
-            const counter = document.getElementById('totalAktif');
-            tbody.innerHTML = "";
+        // --- SISTEM OTP (Sinkron dengan Admin) ---
+        let kodeOTPBenar = "";
+
+        function generateOTP() {
+            const newOTP = Math.floor(1000 + Math.random() * 9000);
+            const sekarang = new Date();
+            const jam = sekarang.getHours().toString().padStart(2, '0') + ":" + sekarang.getMinutes().toString().padStart(2, '0');
             
-            let aktif = 0;
-            let rows = [];
-
-            snap.forEach(child => {
-                const d = child.val();
-                if(d.status === "DIPINJAM") aktif++;
-                
-                const statusKls = d.status === "DIPINJAM" 
-                    ? "bg-orange-100 text-orange-600" 
-                    : "bg-emerald-100 text-emerald-600";
-
-                rows.push(`
-                    <tr class="border-b border-slate-50 hover:bg-slate-50 transition-all">
-                        <td class="p-5 text-slate-400 whitespace-nowrap">${d.tglPinjam}</td>
-                        <td class="p-5">
-                            <span class="block text-indigo-900 font-black uppercase">${d.namaSiswa}</span>
-                            <span class="text-[9px] text-slate-400">${d.idSiswa}</span>
-                        </td>
-                        <td class="p-5 text-slate-800 uppercase font-black">${d.judulBuku}</td>
-                        <td class="p-5 text-center">
-                            <span class="px-3 py-1 rounded-full text-[9px] font-black ${statusKls}">
-                                ${d.status}
-                            </span>
-                        </td>
-                        <td class="p-5 text-emerald-600 font-black italic whitespace-nowrap">
-                            ${d.tglKembali || "-"}
-                        </td>
-                    </tr>
-                `);
+            db.ref('sistem_keamanan/otp_katalog').set({
+                kode: newOTP.toString(),
+                status: "TERKUNCI",
+                waktu: jam
             });
+        }
 
-            tbody.innerHTML = rows.reverse().join('');
-            counter.innerText = aktif;
+        // Pantau OTP di Database
+        db.ref('sistem_keamanan/otp_katalog').on('value', snap => {
+            if(snap.exists()) {
+                kodeOTPBenar = snap.val().kode;
+            } else {
+                generateOTP();
+            }
         });
+
+        function verifikasiOTP() {
+            const input = document.getElementById('inputOTP').value;
+            if(input === kodeOTPBenar) {
+                // Update status di admin
+                db.ref('sistem_keamanan/otp_katalog/status').set("TERBUKA (LOG)");
+                // Sembunyikan Overlay
+                document.getElementById('otpOverlay').classList.add('hidden');
+                loadDataLog();
+            } else {
+                alert("KODE SALAH! Cek di HP Pak Kiswanto");
+                document.getElementById('inputOTP').value = "";
+            }
+        }
+
+        // --- LOAD DATA LOG (Hanya jalan jika OTP Benar) ---
+        function loadDataLog() {
+            db.ref('perpus_laporan').on('value', snap => {
+                const tbody = document.getElementById('tabelLog');
+                const counter = document.getElementById('totalAktif');
+                tbody.innerHTML = "";
+                
+                let aktif = 0;
+                let rows = [];
+
+                snap.forEach(child => {
+                    const d = child.val();
+                    if(d.status === "DIPINJAM") aktif++;
+                    
+                    const statusKls = d.status === "DIPINJAM" 
+                        ? "bg-orange-100 text-orange-600" 
+                        : "bg-emerald-100 text-emerald-600";
+
+                    rows.push(`
+                        <tr class="border-b border-slate-50 hover:bg-slate-50 transition-all">
+                            <td class="p-5 text-slate-400 whitespace-nowrap">${d.tglPinjam}</td>
+                            <td class="p-5">
+                                <span class="block text-indigo-900 font-black uppercase">${d.namaSiswa}</span>
+                                <span class="text-[9px] text-slate-400">${d.idSiswa}</span>
+                            </td>
+                            <td class="p-5 text-slate-800 uppercase font-black">${d.judulBuku}</td>
+                            <td class="p-5 text-center">
+                                <span class="px-3 py-1 rounded-full text-[9px] font-black ${statusKls}">
+                                    ${d.status}
+                                </span>
+                            </td>
+                            <td class="p-5 text-emerald-600 font-black italic whitespace-nowrap">
+                                ${d.tglKembali || "-"}
+                            </td>
+                        </tr>
+                    `);
+                });
+
+                tbody.innerHTML = rows.reverse().join('');
+                counter.innerText = aktif;
+            });
+        }
+
+        // Jalankan generate OTP saat pertama kali buka jika belum ada
+        window.onload = () => { generateOTP(); };
     </script>
 </body>
 </html>
