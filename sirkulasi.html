@@ -7,6 +7,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 <body class="bg-slate-50 min-h-screen pb-10">
 
@@ -28,22 +29,26 @@
                 <span class="text-xl">📚</span>
                 <span class="font-black text-blue-900 italic text-sm uppercase">E-Perpus</span>
             </a>
-            <div class="flex gap-2">
-                <a href="log-sirkulasi.html" class="px-3 py-2 rounded-xl text-[9px] font-black uppercase bg-slate-100 text-slate-600">📜 Lihat Log</a>
-            </div>
+            <a href="log-sirkulasi.html" class="px-3 py-2 rounded-xl text-[9px] font-black uppercase bg-slate-100 text-slate-600">📜 Log</a>
         </div>
     </nav>
 
     <div class="max-w-2xl mx-auto px-4">
-        <div class="bg-blue-600 text-white p-8 rounded-[2.5rem] shadow-xl mb-6 border-b-8 border-blue-800">
-            <h1 class="text-2xl font-black uppercase italic leading-none">Transaksi Buku 🔄</h1>
-            <p class="text-[10px] font-bold opacity-80 uppercase tracking-widest mt-2">Peminjaman & Pengembalian Cepat</p>
+        <div class="bg-blue-600 text-white p-6 rounded-[2.5rem] shadow-xl mb-6 border-b-8 border-blue-800">
+            <h1 class="text-xl font-black uppercase italic leading-none">Transaksi Buku 🔄</h1>
+            <p class="text-[9px] font-bold opacity-80 uppercase tracking-widest mt-2">Gunakan kamera untuk scan barcode</p>
+        </div>
+
+        <div id="scannerArea" class="hidden mb-6 rounded-[2.5rem] overflow-hidden border-4 border-blue-500 bg-black relative shadow-2xl">
+            <div id="reader" style="width: 100%; min-height: 250px;"></div>
+            <button onclick="tutupScanner()" class="w-full bg-red-600 text-white py-4 font-black text-xs uppercase">Batal Scan ❌</button>
         </div>
 
         <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200 space-y-4">
-            <div>
-                <label class="text-[8px] font-black text-slate-400 ml-3 uppercase">Nomor Induk Siswa (NIS)</label>
-                <input type="text" id="nisSiswa" onchange="cariSiswa()" placeholder="SCAN KARTU / KETIK NIS..." class="w-full p-5 bg-slate-50 rounded-2xl font-black outline-none border-2 border-transparent focus:border-blue-500 uppercase tracking-widest">
+            <div class="relative">
+                <label class="text-[8px] font-black text-slate-400 ml-3 uppercase">Peminjam (NIS)</label>
+                <input type="text" id="nisSiswa" onchange="cariSiswa()" placeholder="KETIK NIS / SCAN..." class="w-full p-5 bg-slate-50 rounded-2xl font-black outline-none border-2 border-transparent focus:border-blue-500 uppercase text-sm tracking-widest">
+                <button onclick="bukaScanner('nisSiswa')" class="absolute right-2 top-[22px] bottom-2 bg-blue-600 text-white px-4 rounded-xl font-black text-[10px]">📷 SCAN</button>
             </div>
 
             <div id="infoSiswa" class="hidden p-4 bg-blue-50 rounded-2xl border border-blue-100">
@@ -51,14 +56,15 @@
                 <p id="kelasSiswaDisplay" class="text-[10px] font-bold text-blue-500 uppercase"></p>
             </div>
 
-            <div>
+            <div class="relative">
                 <label class="text-[8px] font-black text-slate-400 ml-3 uppercase">Barcode Buku</label>
-                <input type="text" id="barcodeBuku" placeholder="SCAN BARCODE BUKU..." class="w-full p-5 bg-slate-50 rounded-2xl font-black outline-none border-2 border-transparent focus:border-blue-500 uppercase tracking-widest">
+                <input type="text" id="barcodeBuku" placeholder="KETIK KODE / SCAN..." class="w-full p-5 bg-slate-50 rounded-2xl font-black outline-none border-2 border-transparent focus:border-blue-500 uppercase text-sm tracking-widest">
+                <button onclick="bukaScanner('barcodeBuku')" class="absolute right-2 top-[22px] bottom-2 bg-orange-500 text-white px-4 rounded-xl font-black text-[10px]">📷 SCAN</button>
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
-                <button onclick="prosesTransaksi('PINJAM')" class="bg-blue-600 text-white font-black py-5 rounded-3xl shadow-lg hover:bg-blue-700 transition-all uppercase italic text-xs">Pinjam Buku 📤</button>
-                <button onclick="prosesTransaksi('KEMBALI')" class="bg-emerald-500 text-white font-black py-5 rounded-3xl shadow-lg hover:bg-emerald-600 transition-all uppercase italic text-xs">Kembali Buku 📥</button>
+            <div class="grid grid-cols-2 gap-4 pt-2">
+                <button onclick="prosesTransaksi('PINJAM')" class="bg-blue-600 text-white font-black py-5 rounded-3xl shadow-lg hover:bg-blue-700 transition-all uppercase italic text-xs">Pinjam 📤</button>
+                <button onclick="prosesTransaksi('KEMBALI')" class="bg-emerald-500 text-white font-black py-5 rounded-3xl shadow-lg hover:bg-emerald-600 transition-all uppercase italic text-xs">Kembali 📥</button>
             </div>
         </div>
     </div>
@@ -72,6 +78,8 @@
         const db = firebase.database();
 
         let kodeOTPBenar = "";
+        let targetInputId = ""; // Untuk menampung input mana yang sedang di-scan
+        let html5QrCode = null;
 
         // --- SISTEM SESI & OTP ---
         function cekSesi() {
@@ -88,15 +96,44 @@
             if(document.getElementById('inputOTP').value === kodeOTPBenar) {
                 sessionStorage.setItem("aksesEPerpus", "aktif");
                 document.getElementById('otpOverlay').classList.add('hidden');
-                db.ref('sistem_keamanan/otp_katalog/status').set("SEDANG TRANSAKSI");
-            } else {
-                alert("KODE SALAH!");
+            } else { alert("KODE SALAH!"); }
+        }
+
+        // --- FUNGSI SCANNER ---
+        function bukaScanner(idTujuan) {
+            targetInputId = idTujuan;
+            document.getElementById('scannerArea').classList.remove('hidden');
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start(
+                { facingMode: "environment" }, 
+                { fps: 15, qrbox: { width: 250, height: 150 } },
+                (decodedText) => {
+                    document.getElementById(targetInputId).value = decodedText.trim();
+                    if(targetInputId === 'nisSiswa') cariSiswa(); // Jika yang discan siswa, langsung cari
+                    tutupScanner();
+                    // Suara bip simpel
+                    const audio = new AudioContext();
+                    const osc = audio.createOscillator();
+                    osc.connect(audio.destination);
+                    osc.start(); osc.stop(audio.currentTime + 0.1);
+                }
+            ).catch(err => { console.error(err); tutupScanner(); });
+        }
+
+        function tutupScanner() {
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    document.getElementById('scannerArea').classList.add('hidden');
+                }).catch(() => {
+                    document.getElementById('scannerArea').classList.add('hidden');
+                });
             }
         }
 
-        // --- FUNGSI TRANSAKSI KEREN ---
+        // --- LOGIKA TRANSAKSI ---
         function cariSiswa() {
             const nis = document.getElementById('nisSiswa').value;
+            if(!nis) return;
             db.ref('daftar_anggota/' + nis).once('value', snap => {
                 if(snap.exists()){
                     const s = snap.val();
@@ -106,6 +143,7 @@
                 } else {
                     alert("Siswa tidak ditemukan!");
                     document.getElementById('infoSiswa').classList.add('hidden');
+                    document.getElementById('nisSiswa').value = "";
                 }
             });
         }
@@ -115,41 +153,29 @@
             const barcode = document.getElementById('barcodeBuku').value;
             const nama = document.getElementById('namaSiswaDisplay').innerText;
             
-            if(!nis || !barcode) return alert("Lengkapi Data!");
+            if(!nis || !barcode) return alert("Scan Siswa & Buku dulu!");
 
-            // Ambil data buku dulu untuk tahu judulnya
             db.ref('koleksi_buku/' + barcode).once('value', snap => {
-                if(!snap.exists()) return alert("Buku tidak terdaftar!");
+                if(!snap.exists()) return alert("Buku tidak ditemukan di Katalog!");
                 
                 const buku = snap.val();
                 const tgl = new Date().toLocaleString('id-ID');
-                const logRef = db.ref('perpus_laporan').push();
-
-                if(tipe === 'PINJAM') {
-                    logRef.set({
-                        idSiswa: nis,
-                        namaSiswa: nama,
-                        judulBuku: buku.judul,
-                        tglPinjam: tgl,
-                        status: "DIPINJAM"
-                    });
-                    // Kurangi stok
-                    db.ref('koleksi_buku/' + barcode).update({ stok_tersedia: buku.stok_tersedia - 1 });
-                } else {
-                    // Logika Kembali (Cari data pinjaman terakhir)
-                    // Untuk kesederhanaan, kita buat log baru dengan status KEMBALI
-                    logRef.set({
-                        idSiswa: nis,
-                        namaSiswa: nama,
-                        judulBuku: buku.judul,
-                        tglKembali: tgl,
-                        status: "DIKEMBALIKAN"
-                    });
-                    // Tambah stok
-                    db.ref('koleksi_buku/' + barcode).update({ stok_tersedia: buku.stok_tersedia + 1 });
-                }
                 
-                alert("Transaksi " + tipe + " Berhasil!");
+                // Update Log Laporan
+                db.ref('perpus_laporan').push({
+                    idSiswa: nis,
+                    namaSiswa: nama,
+                    judulBuku: buku.judul,
+                    tglPinjam: tgl,
+                    status: tipe === 'PINJAM' ? "DIPINJAM" : "DIKEMBALIKAN",
+                    tglKembali: tipe === 'KEMBALI' ? tgl : ""
+                });
+
+                // Update Stok Buku
+                const stokBaru = tipe === 'PINJAM' ? (buku.stok_tersedia - 1) : (buku.stok_tersedia + 1);
+                db.ref('koleksi_buku/' + barcode).update({ stok_tersedia: stokBaru });
+                
+                alert("Berhasil: Buku " + (tipe === 'PINJAM' ? "Keluar" : "Kembali"));
                 location.reload();
             });
         }
