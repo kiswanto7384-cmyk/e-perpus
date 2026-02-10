@@ -1,4 +1,10 @@
 <!DOCTYPE html>
+<script>
+    // SATPAM OTP: Harus ditaruh paling atas agar dicek sebelum halaman muncul
+    if (!sessionStorage.getItem("aksesEPerpus")) {
+        window.location.href = "index.html";
+    }
+</script>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
@@ -10,7 +16,6 @@
     
     <header class="bg-indigo-900 text-white pt-12 pb-24 px-6 rounded-b-[3rem] shadow-2xl relative overflow-hidden">
         <div class="absolute top-0 right-0 opacity-10 text-[150px] rotate-12 italic font-black text-white pointer-events-none">LIB</div>
-        
         <div class="max-w-xl mx-auto flex justify-between items-center relative z-10">
             <div>
                 <p class="text-indigo-200 text-xs font-bold uppercase tracking-widest mb-1">Administrator,</p>
@@ -21,9 +26,7 @@
     </header>
 
     <main class="max-w-xl mx-auto px-6 -mt-16 relative z-20 pb-10">
-        
         <div class="grid grid-cols-2 gap-4">
-            
             <a href="pinjaman.html" class="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center text-center hover:scale-95 hover:bg-blue-50 transition-all group">
                 <div class="h-16 w-16 bg-blue-50 group-hover:bg-blue-600 group-hover:text-white text-blue-600 rounded-3xl flex items-center justify-center text-3xl mb-4 transition-colors shadow-sm">➕</div>
                 <h3 class="font-black uppercase italic text-[11px]">Pinjam Buku</h3>
@@ -50,7 +53,6 @@
         </div>
 
         <div class="mt-6 space-y-3">
-            
             <a href="log-sirkulasi.html" class="bg-slate-900 text-white p-5 rounded-[2.5rem] flex items-center gap-4 border-b-4 border-slate-700 hover:bg-slate-800 transition-all shadow-lg group">
                 <div class="h-12 w-12 bg-white/10 group-hover:bg-yellow-500 group-hover:text-slate-900 rounded-2xl flex items-center justify-center text-xl text-yellow-500 transition-all shadow-inner">📜</div>
                 <div class="flex-1">
@@ -79,16 +81,12 @@
     </main>
 
     <script>
-        // Fungsi Logout
         function keluarSistem() {
             if(confirm("Apakah Anda yakin ingin mengunci dashboard ini?")) {
                 sessionStorage.removeItem("aksesEPerpus");
                 window.location.href = "index.html";
             }
         }
-
-        // Tips: Tambahkan validasi akses di sini jika diperlukan
-        // if(!sessionStorage.getItem("aksesEPerpus")) { window.location.href = "index.html"; }
     </script>
 </body>
 </html>
