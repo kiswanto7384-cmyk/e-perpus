@@ -46,8 +46,8 @@
 
         <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200 space-y-4">
             <div class="relative">
-                <label class="text-[8px] font-black text-slate-400 ml-3 uppercase">Peminjam (NIS)</label>
-                <input type="text" id="nisSiswa" onchange="cariSiswa()" placeholder="KETIK NIS / SCAN..." class="w-full p-5 bg-slate-50 rounded-2xl font-black outline-none border-2 border-transparent focus:border-blue-500 uppercase text-sm tracking-widest">
+                <label class="text-[8px] font-black text-slate-400 ml-3 uppercase">Peminjam (ID/NIS)</label>
+                <input type="text" id="nisSiswa" onchange="cariSiswa()" placeholder="KETIK ID / SCAN..." class="w-full p-5 bg-slate-50 rounded-2xl font-black outline-none border-2 border-transparent focus:border-blue-500 uppercase text-sm tracking-widest">
                 <button onclick="bukaScanner('nisSiswa')" class="absolute right-2 top-[22px] bottom-2 bg-blue-600 text-white px-4 rounded-xl font-black text-[10px]">📷 SCAN</button>
             </div>
 
@@ -78,10 +78,9 @@
         const db = firebase.database();
 
         let kodeOTPBenar = "";
-        let targetInputId = ""; // Untuk menampung input mana yang sedang di-scan
+        let targetInputId = ""; 
         let html5QrCode = null;
 
-        // --- SISTEM SESI & OTP ---
         function cekSesi() {
             if (sessionStorage.getItem("aksesEPerpus") === "aktif") {
                 document.getElementById('otpOverlay').classList.add('hidden');
@@ -99,7 +98,6 @@
             } else { alert("KODE SALAH!"); }
         }
 
-        // --- FUNGSI SCANNER ---
         function bukaScanner(idTujuan) {
             targetInputId = idTujuan;
             document.getElementById('scannerArea').classList.remove('hidden');
@@ -109,13 +107,8 @@
                 { fps: 15, qrbox: { width: 250, height: 150 } },
                 (decodedText) => {
                     document.getElementById(targetInputId).value = decodedText.trim();
-                    if(targetInputId === 'nisSiswa') cariSiswa(); // Jika yang discan siswa, langsung cari
+                    if(targetInputId === 'nisSiswa') cariSiswa(); 
                     tutupScanner();
-                    // Suara bip simpel
-                    const audio = new AudioContext();
-                    const osc = audio.createOscillator();
-                    osc.connect(audio.destination);
-                    osc.start(); osc.stop(audio.currentTime + 0.1);
                 }
             ).catch(err => { console.error(err); tutupScanner(); });
         }
@@ -130,18 +123,19 @@
             }
         }
 
-        // --- LOGIKA TRANSAKSI ---
+        // --- PERBAIKAN: Membaca folder 'anggota_perpus' ---
         function cariSiswa() {
-            const nis = document.getElementById('nisSiswa').value;
+            const nis = document.getElementById('nisSiswa').value.trim();
             if(!nis) return;
-            db.ref('daftar_anggota/' + nis).once('value', snap => {
+            
+            db.ref('anggota_perpus/' + nis).once('value', snap => {
                 if(snap.exists()){
                     const s = snap.val();
                     document.getElementById('infoSiswa').classList.remove('hidden');
                     document.getElementById('namaSiswaDisplay').innerText = s.nama;
                     document.getElementById('kelasSiswaDisplay').innerText = "Kelas: " + s.kelas;
                 } else {
-                    alert("Siswa tidak ditemukan!");
+                    alert("ID Siswa [" + nis + "] Tidak Ditemukan! Pastikan sudah terdaftar di menu Anggota.");
                     document.getElementById('infoSiswa').classList.add('hidden');
                     document.getElementById('nisSiswa').value = "";
                 }
@@ -153,7 +147,8 @@
             const barcode = document.getElementById('barcodeBuku').value;
             const nama = document.getElementById('namaSiswaDisplay').innerText;
             
-            if(!nis || !barcode) return alert("Scan Siswa & Buku dulu!");
+            if(!nis || !nama) return alert("Cari/Scan Siswa dulu!");
+            if(!barcode) return alert("Scan Barcode Buku dulu!");
 
             db.ref('koleksi_buku/' + barcode).once('value', snap => {
                 if(!snap.exists()) return alert("Buku tidak ditemukan di Katalog!");
@@ -161,21 +156,18 @@
                 const buku = snap.val();
                 const tgl = new Date().toLocaleString('id-ID');
                 
-                // Update Log Laporan
                 db.ref('perpus_laporan').push({
                     idSiswa: nis,
                     namaSiswa: nama,
                     judulBuku: buku.judul,
-                    tglPinjam: tgl,
-                    status: tipe === 'PINJAM' ? "DIPINJAM" : "DIKEMBALIKAN",
-                    tglKembali: tipe === 'KEMBALI' ? tgl : ""
+                    tgl: tgl,
+                    status: tipe === 'PINJAM' ? "DIPINJAM" : "DIKEMBALIKAN"
                 });
 
-                // Update Stok Buku
-                const stokBaru = tipe === 'PINJAM' ? (buku.stok_tersedia - 1) : (buku.stok_tersedia + 1);
+                const stokBaru = tipe === 'PINJAM' ? (parseInt(buku.stok_tersedia) - 1) : (parseInt(buku.stok_tersedia) + 1);
                 db.ref('koleksi_buku/' + barcode).update({ stok_tersedia: stokBaru });
                 
-                alert("Berhasil: Buku " + (tipe === 'PINJAM' ? "Keluar" : "Kembali"));
+                alert("Berhasil! Status: " + (tipe === 'PINJAM' ? "Pinjam" : "Kembali"));
                 location.reload();
             });
         }
