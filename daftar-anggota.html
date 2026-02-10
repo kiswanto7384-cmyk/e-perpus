@@ -69,18 +69,26 @@
     </div>
 
     <script>
-        const firebaseConfig = {
+        // --- KONFIGURASI DUA DATABASE ---
+        
+        // 1. Database Kantin (Hanya untuk ambil data nama)
+        const configKantin = {
             apiKey: "AIzaSyCUjE8WXa8Py4vnojrXDUR3uCvnQEzP6zQ",
-            authDomain: "e-kantin-91f0c.firebaseapp.com",
-            databaseURL: "https://e-kantin-91f0c-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "e-kantin-91f0c",
-            storageBucket: "e-kantin-91f0c.firebasestorage.app",
-            messagingSenderId: "981834126006",
-            appId: "1:981834126006:web:dac8bb0ec1da90549b4c17"
+            databaseURL: "https://e-kantin-91f0c-default-rtdb.asia-southeast1.firebasedatabase.app"
         };
 
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+        // 2. Database Perpus (Untuk simpan data anggota tetap)
+        const configPerpus = {
+            apiKey: "AIzaSyBXt0gEgczYD1jQ9OhNk5FGN8CePIFaSYw",
+            databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app"
+        };
+
+        // Inisialisasi
+        const appKantin = firebase.initializeApp(configKantin, "kantin");
+        const appPerpus = firebase.initializeApp(configPerpus, "perpus");
+
+        const dbKantin = appKantin.database();
+        const dbPerpus = appPerpus.database();
         
         let html5QrCode;
 
@@ -103,52 +111,53 @@
             }
         }
 
+        // Cari Nama di Database KANTIN
         function cariDataKantin(id) {
-            db.ref('kantin_users/' + id).once('value').then((snap) => {
+            dbKantin.ref('kantin_users/' + id).once('value').then((snap) => {
                 const data = snap.val();
                 if(data) {
                     document.getElementById('namaSiswa').value = data.nama || "";
                     document.getElementById('kelasSiswa').value = data.kelas || "-";
                 } else {
-                    alert("ID [" + id + "] Belum terdaftar di database Kantin!");
+                    alert("ID [" + id + "] Belum terdaftar di Kantin!");
                 }
-            }).catch((error) => {
-                alert("Error Koneksi: " + error.message);
             });
         }
 
+        // Simpan Permanen ke Database PERPUS
         function simpanSiswa() {
             const id = document.getElementById('idSiswa').value.trim();
             const nama = document.getElementById('namaSiswa').value.trim().toUpperCase();
             const kelas = document.getElementById('kelasSiswa').value.trim().toUpperCase();
 
             if(id && nama) {
-                db.ref('anggota_perpus/' + id).set({
+                dbPerpus.ref('anggota_perpus/' + id).set({
                     id, nama, kelas,
                     tgl_daftar: new Date().toLocaleDateString('id-ID'),
                     status: "AKTIF"
                 }).then(() => {
-                    alert("✅ " + nama + " Resmi Jadi Anggota Perpus!");
+                    alert("✅ " + nama + " Berhasil Aktif di Perpus!");
                     document.getElementById('idSiswa').value = "";
                     document.getElementById('namaSiswa').value = "";
                     document.getElementById('kelasSiswa').value = "";
                 });
-            } else { alert("Data belum lengkap!"); }
+            } else { alert("Scan kartu dulu, Pak!"); }
         }
 
-        db.ref('anggota_perpus').on('value', snap => {
+        // Tampilkan Daftar dari Database PERPUS
+        dbPerpus.ref('anggota_perpus').on('value', snap => {
             const container = document.getElementById('listAnggota');
             container.innerHTML = "";
             snap.forEach(sSnap => {
                 const s = sSnap.val();
                 container.innerHTML += `
-                    <div class="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex justify-between items-center">
+                    <div class="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex justify-between items-center mb-2">
                         <div>
                             <p class="text-[7px] font-black text-indigo-500 uppercase">ID: ${s.id}</p>
                             <h3 class="font-black text-[11px] uppercase text-slate-800">${s.nama}</h3>
                             <p class="text-[8px] font-bold text-slate-400">${s.kelas}</p>
                         </div>
-                        <button onclick="if(confirm('Hapus Keanggotaan?')) db.ref('anggota_perpus/${s.id}').remove()" class="text-slate-200 hover:text-red-500 p-2 transition-colors">🗑️</button>
+                        <button onclick="if(confirm('Hapus?')) dbPerpus.ref('anggota_perpus/${s.id}').remove()" class="text-red-400 p-2">🗑️</button>
                     </div>`;
             });
         });
