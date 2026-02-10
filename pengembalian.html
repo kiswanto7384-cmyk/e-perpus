@@ -13,7 +13,7 @@
     <div class="max-w-4xl mx-auto">
         <div class="bg-indigo-700 p-6 rounded-[2rem] text-white shadow-lg mb-6 flex justify-between items-center border-b-8 border-indigo-900">
             <div>
-                <h1 class="text-2xl font-black italic uppercase tracking-tighter text-yellow-400">Pengembalian Buku</h1>
+                <h1 class="text-2xl font-black italic uppercase tracking-tighter text-yellow-400">Pengembalian Buku 📥</h1>
                 <p class="text-[10px] font-bold opacity-80 uppercase tracking-widest">Integrasi Saldo E-Kantin Otomatis</p>
             </div>
             <div class="text-right">
@@ -34,7 +34,6 @@
                         <tr class="bg-slate-50 text-[9px] font-black uppercase text-slate-400 tracking-widest border-b">
                             <th class="p-5 text-center w-16">ID KARTU</th>
                             <th class="p-5">PEMINJAM</th>
-                            <th class="p-5 text-center">DEADLINE</th>
                             <th class="p-5 text-center text-red-500">DENDA</th>
                             <th class="p-5 text-center">TINDAKAN</th>
                         </tr>
@@ -47,108 +46,87 @@
     </div>
 
     <script>
-        // CONFIG FIREBASE
-        const firebaseConfig = { databaseURL: "https://ceklist-anak-indonesia-hebat-default-rtdb.asia-southeast1.firebasedatabase.app" };
+        // Gunakan Database URL yang sama dengan sirkulasi
+        const firebaseConfig = { databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app" };
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
         const DENDA_PER_HARI = 1000;
 
         function muatDataPinjaman() {
-            db.ref('pinjaman_aktif').on('value', snap => {
+            // Mengambil dari 'perpus_laporan' agar sinkron dengan halaman sirkulasi
+            db.ref('perpus_laporan').on('value', snap => {
                 const body = document.getElementById('tabelPinjaman');
                 const countEl = document.getElementById('totalPinjaman');
                 body.innerHTML = "";
                 let count = 0;
 
                 snap.forEach(child => {
-                    count++;
                     const p = child.val();
                     const key = child.key;
 
-                    // Logika Hitung Denda Berdasarkan Tanggal
-                    const hariIni = new Date();
-                    hariIni.setHours(0,0,0,0);
-                    const tglDeadline = new Date(p.tgl_kembali);
-                    tglDeadline.setHours(0,0,0,0);
-
-                    let denda = 0;
-                    let telat = 0;
-                    if (hariIni > tglDeadline) {
-                        const selisih = hariIni.getTime() - tglDeadline.getTime();
-                        telat = Math.ceil(selisih / (1000 * 60 * 60 * 24));
-                        denda = telat * DENDA_PER_HARI;
+                    // Hanya tampilkan yang statusnya "DIPINJAM"
+                    if (p.status === "DIPINJAM") {
+                        count++;
+                        
+                        // Hitung Denda (Contoh Sederhana: jika lebih dari 7 hari)
+                        // Anda bisa menyesuaikan logika tgl_kembali di sini
+                        let denda = 0; 
+                        
+                        body.innerHTML += `
+                            <tr class="border-b border-slate-100 hover:bg-slate-50 transition-all">
+                                <td class="p-5 text-center font-bold text-slate-400">#${p.idSiswa}</td>
+                                <td class="p-5">
+                                    <p class="font-black text-slate-700 uppercase leading-none">${p.namaSiswa}</p>
+                                    <p class="text-[9px] font-bold text-indigo-500 uppercase italic mt-1">${p.judulBuku}</p>
+                                </td>
+                                <td class="p-5 text-center font-black text-sm text-red-600">
+                                    Rp ${denda.toLocaleString()}
+                                </td>
+                                <td class="p-5 text-center">
+                                    <button onclick="prosesKembali('${key}', '${p.idSiswa}', '${p.namaSiswa}', ${denda})" 
+                                        class="bg-emerald-500 text-white px-5 py-2 rounded-xl font-black uppercase text-[9px] shadow-lg hover:bg-emerald-600 transition-all">
+                                        Kembalikan ✅
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
                     }
-
-                    body.innerHTML += `
-                        <tr class="border-b border-slate-100 hover:bg-slate-50 transition-all">
-                            <td class="p-5 text-center font-bold text-slate-400">#${p.id_kartu}</td>
-                            <td class="p-5">
-                                <p class="font-black text-slate-700 uppercase leading-none">${p.nama_siswa}</p>
-                                <p class="text-[9px] font-bold text-indigo-500 uppercase italic mt-1">${p.judul_buku}</p>
-                            </td>
-                            <td class="p-5 text-center font-bold uppercase ${telat > 0 ? 'text-red-500' : 'text-slate-500'}">
-                                ${p.tgl_kembali}<br>
-                                ${telat > 0 ? `<span class="bg-red-100 text-[8px] px-2 rounded-full">TELAT ${telat} HARI</span>` : '<span class="text-emerald-500 text-[8px]">AMAN</span>'}
-                            </td>
-                            <td class="p-5 text-center font-black text-sm ${denda > 0 ? 'text-red-600' : 'text-emerald-600'}">
-                                Rp ${denda.toLocaleString()}
-                            </td>
-                            <td class="p-5 text-center">
-                                <button onclick="prosesKembali('${key}', '${p.id_kartu}', '${p.nama_siswa}', ${denda})" 
-                                    class="bg-indigo-600 text-white px-5 py-2 rounded-xl font-black uppercase text-[9px] shadow-lg hover:bg-indigo-800 transition-all active:scale-90">
-                                    Kembalikan ✅
-                                </button>
-                            </td>
-                        </tr>
-                    `;
                 });
                 countEl.innerText = count + " Buku Aktif";
             });
         }
 
-        function prosesKembali(key, idKartu, namaSiswa, totalDenda) {
-            // Path diarahkan ke id_kartu sesuai sistem E-Kantin
-            const pathSiswa = idKartu;
-            
+        function prosesKembali(key, idSiswa, namaSiswa, totalDenda) {
             if (totalDenda > 0) {
-                if (confirm(`Siswa ${namaSiswa} terlambat. Saldo otomatis dipotong Rp ${totalDenda.toLocaleString()}. Lanjutkan?`)) {
-                    
-                    // 1. Cek Saldo di Database Kantin
-                    db.ref('rekap_siswa/' + pathSiswa + '/saldo_kantin').once('value', snap => {
-                        let saldo = snap.val() || 0;
-                        
-                        if (saldo >= totalDenda) {
-                            // 2. Eksekusi Potong Saldo
-                            db.ref('rekap_siswa/' + pathSiswa).update({
-                                saldo_kantin: saldo - totalDenda
+                if (confirm(`Potong Saldo E-Kantin Rp ${totalDenda.toLocaleString()} untuk ${namaSiswa}?`)) {
+                    // Cek Saldo Siswa (Path disesuaikan dengan struktur database Anda)
+                    db.ref('anggota_perpus/' + idSiswa + '/saldo').once('value', snap => {
+                        let saldoSkrg = snap.val() || 0;
+                        if (saldoSkrg >= totalDenda) {
+                            db.ref('anggota_perpus/' + idSiswa).update({
+                                saldo: saldoSkrg - totalDenda
                             }).then(() => {
-                                selesaikanTransaksi(key, totalDenda);
+                                selesaikan(key);
                             });
                         } else {
-                            alert("⚠️ SALDO KANTIN TIDAK CUKUP!\nSaldo: Rp " + saldo.toLocaleString() + "\nDenda: Rp " + totalDenda.toLocaleString() + "\nSiswa harus bayar tunai!");
+                            alert("Saldo Tidak Cukup! Bayar Tunai.");
+                            selesaikan(key);
                         }
                     });
                 }
             } else {
-                if (confirm("Konfirmasi pengembalian tepat waktu?")) {
-                    selesaikanTransaksi(key, 0);
-                }
+                selesaikan(key);
             }
         }
 
-        function selesaikanTransaksi(key, denda) {
-            db.ref('pinjaman_aktif/' + key).once('value', snap => {
-                const data = snap.val();
-                data.tgl_dikembalikan = new Date().toLocaleDateString('id-ID');
-                data.denda_dibayar = denda;
-
-                // 1. Pindahkan ke Riwayat
-                db.ref('riwayat_perpus').push(data).then(() => {
-                    // 2. Hapus dari Pinjaman Aktif
-                    db.ref('pinjaman_aktif/' + key).remove();
-                    alert("Berhasil! Buku dikembalikan dan status diperbarui.");
-                });
+        function selesaikan(key) {
+            const tglSkrg = new Date().toLocaleString('id-ID');
+            db.ref('perpus_laporan/' + key).update({
+                status: "DIKEMBALIKAN",
+                waktuKembali: tglSkrg
+            }).then(() => {
+                alert("Buku Berhasil Dikembalikan!");
             });
         }
 
