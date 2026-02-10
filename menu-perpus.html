@@ -1,88 +1,36 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Menu Utama - E-Perpus</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-slate-50 min-h-screen font-sans antialiased text-slate-900">
+<div class="grid grid-cols-2 gap-4">
     
-    <header class="bg-indigo-900 text-white pt-12 pb-24 px-6 rounded-b-[3rem] shadow-2xl relative overflow-hidden">
-        <div class="absolute top-0 right-0 opacity-10 text-[150px] rotate-12 italic font-black text-white pointer-events-none">LIB</div>
-        <div class="max-w-xl mx-auto flex justify-between items-center relative z-10">
-            <div>
-                <p class="text-indigo-200 text-xs font-bold uppercase tracking-widest mb-1">Administrator,</p>
-                <h1 class="text-2xl font-black italic tracking-tight uppercase text-yellow-400">Dashboard Perpus 📚</h1>
-            </div>
-            <div class="h-12 w-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl border border-white/30">👤</div>
+    <a href="pinjaman.html" class="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center text-center hover:scale-95 transition-all">
+        <div class="h-16 w-16 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center text-3xl mb-4">➕</div>
+        <h3 class="font-black uppercase italic text-[11px]">Pinjam Buku</h3>
+        <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase">Scan Kartu</p>
+    </a>
+
+    <a href="pengembalian.html" class="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center text-center hover:scale-95 transition-all">
+        <div class="h-16 w-16 bg-emerald-50 text-emerald-600 rounded-3xl flex items-center justify-center text-3xl mb-4">✅</div>
+        <h3 class="font-black uppercase italic text-[11px]">Pengembalian</h3>
+        <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase">Potong Saldo</p>
+    </a>
+
+    <a href="katalog.html" class="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center text-center hover:scale-95 transition-all">
+        <div class="h-16 w-16 bg-orange-50 text-orange-600 rounded-3xl flex items-center justify-center text-3xl mb-4">📖</div>
+        <h3 class="font-black uppercase italic text-[11px]">Katalog</h3>
+        <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase">Stok Buku</p>
+    </a>
+
+    <a href="daftar-anggota.html" class="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center text-center hover:scale-95 transition-all">
+        <div class="h-16 w-16 bg-indigo-50 text-indigo-600 rounded-3xl flex items-center justify-center text-3xl mb-4">👥</div>
+        <h3 class="font-black uppercase italic text-[11px]">Anggota</h3>
+        <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase">Data Siswa</p>
+    </a>
+</div>
+
+<div class="mt-6">
+    <a href="log-sirkulasi.html" class="bg-slate-900 text-white p-5 rounded-[2rem] flex items-center gap-4">
+        <div class="h-12 w-12 bg-white/10 rounded-2xl flex items-center justify-center text-xl">📜</div>
+        <div>
+            <h3 class="font-black uppercase italic text-[11px]">Log Sirkulasi</h3>
+            <p class="text-[8px] font-bold text-slate-400 uppercase">Riwayat Pinjam & Kembali</p>
         </div>
-    </header>
-
-    <main class="max-w-xl mx-auto px-6 -mt-16 relative z-20">
-        <div class="grid grid-cols-2 gap-4">
-            
-            <a href="peminjaman.html" class="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center text-center hover:scale-95 hover:bg-blue-50 transition-all group">
-                <div class="h-16 w-16 bg-blue-50 group-hover:bg-blue-600 group-hover:text-white text-blue-600 rounded-3xl flex items-center justify-center text-3xl mb-4 transition-colors shadow-sm">➕</div>
-                <h3 class="font-black uppercase italic text-[11px]">Pinjam Buku</h3>
-                <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase">Sirkulasi Keluar</p>
-            </a>
-
-            <a href="pengembalian.html" class="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center text-center hover:scale-95 hover:bg-emerald-50 transition-all group">
-                <div class="h-16 w-16 bg-emerald-50 group-hover:bg-emerald-600 group-hover:text-white text-emerald-600 rounded-3xl flex items-center justify-center text-3xl mb-4 transition-colors shadow-sm">✅</div>
-                <h3 class="font-black uppercase italic text-[11px]">Pengembalian</h3>
-                <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase">Cek Denda & Saldo</p>
-            </a>
-
-            <a href="katalog.html" class="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center text-center hover:scale-95 hover:bg-orange-50 transition-all group">
-                <div class="h-16 w-16 bg-orange-50 group-hover:bg-orange-600 group-hover:text-white text-orange-600 rounded-3xl flex items-center justify-center text-3xl mb-4 transition-colors shadow-sm">📖</div>
-                <h3 class="font-black uppercase italic text-[11px]">Katalog Buku</h3>
-                <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase">Manajemen Stok</p>
-            </a>
-
-            <a href="daftar-anggota.html" class="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center text-center hover:scale-95 hover:bg-indigo-50 transition-all group">
-                <div class="h-16 w-16 bg-indigo-50 group-hover:bg-indigo-600 group-hover:text-white text-indigo-600 rounded-3xl flex items-center justify-center text-3xl mb-4 transition-colors shadow-sm">👥</div>
-                <h3 class="font-black uppercase italic text-[11px]">Data Anggota</h3>
-                <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase">Scan & List Siswa</p>
-            </a>
-        </div>
-
-        <div class="mt-6 space-y-3">
-            <a href="riwayat.html" class="bg-slate-900 text-white p-5 rounded-[2rem] flex items-center gap-4 border-b-4 border-slate-700 hover:bg-slate-800 transition-all shadow-lg">
-                <div class="h-12 w-12 bg-white/10 rounded-2xl flex items-center justify-center text-xl">📜</div>
-                <div class="flex-1">
-                    <h3 class="font-black uppercase italic text-[11px]">Log Pinjam Kembali</h3>
-                    <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Audit Aktivitas & Denda</p>
-                </div>
-                <div class="h-8 w-8 bg-white/5 rounded-full flex items-center justify-center text-xs">➔</div>
-            </a>
-
-            <a href="admin-cek-log.html" class="bg-white p-5 rounded-[2rem] flex items-center gap-4 border-2 border-slate-100 hover:border-indigo-300 transition-all shadow-md">
-                <div class="h-12 w-12 bg-slate-100 text-slate-600 rounded-2xl flex items-center justify-center text-xl">🕵️</div>
-                <div class="flex-1">
-                    <h3 class="font-black uppercase italic text-[11px] text-slate-700">Monitoring Guru</h3>
-                    <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Cek OTP & Keamanan</p>
-                </div>
-                <div class="h-8 w-8 bg-slate-50 rounded-full flex items-center justify-center text-xs">➔</div>
-            </a>
-        </div>
-
-        <button onclick="keluarSistem()" class="w-full mt-8 py-4 text-[10px] font-black text-red-500 uppercase tracking-[0.2em] italic underline opacity-50 hover:opacity-100 transition-opacity">
-            Keluar Sistem / Kunci Akses
-        </button>
-    </main>
-
-    <footer class="mt-10 text-center pb-8">
-        <p class="text-[9px] font-black text-slate-300 uppercase tracking-[0.3em]">E-Perpus Indonesia Hebat v2.0</p>
-    </footer>
-
-    <script>
-        function keluarSistem() {
-            if(confirm("Yakin ingin mengunci sistem?")) {
-                sessionStorage.removeItem("aksesEPerpus");
-                window.location.href = "index.html";
-            }
-        }
-    </script>
-</body>
-</html>
+    </a>
+</div>
