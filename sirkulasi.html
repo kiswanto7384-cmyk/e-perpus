@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sirkulasi - E-Perpus SDN 165</title>
+    <title>Sirkulasi - E-Perpus SDN 169</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -11,123 +11,115 @@
 </head>
 <body class="bg-slate-50 min-h-screen pb-10">
 
-    <div id="otpOverlay" class="fixed inset-0 z-[100] bg-slate-900 flex items-center justify-center p-6">
-        <div class="bg-white p-8 rounded-[3rem] shadow-2xl max-w-sm w-full text-center border-b-8 border-blue-600">
-            <div class="mb-6">
-                <span class="text-5xl">🔐</span>
-                <h2 class="text-xl font-black uppercase italic mt-4 text-slate-800">Akses Sirkulasi</h2>
-                <p class="text-[10px] font-bold text-slate-400 tracking-widest uppercase mb-4">Minta kode ke Pak Kiswanto</p>
-                <input type="number" id="inputOTP" placeholder="KODE OTP" class="w-full text-center text-3xl font-black tracking-[0.5em] p-4 bg-slate-100 rounded-3xl outline-none focus:ring-4 ring-blue-500/20">
-            </div>
-            <button onclick="verifikasiOTP()" class="w-full bg-blue-600 text-white font-black py-5 rounded-3xl shadow-lg hover:bg-blue-700 transition-all uppercase italic text-xs tracking-widest">Buka Akses 🔓</button>
-        </div>
-    </div>
+    <script>
+        if (!sessionStorage.getItem("aksesEPerpus")) {
+            window.location.href = "index.html";
+        }
+    </script>
 
     <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-3 mb-6">
         <div class="max-w-4xl mx-auto flex justify-between items-center">
             <a href="menu-perpus.html" class="flex items-center gap-2">
-                <span class="text-xl">📚</span>
-                <span class="font-black text-blue-900 italic text-sm uppercase">E-Perpus</span>
+                <span class="text-xl">🏠</span>
+                <span class="font-black text-indigo-900 italic text-sm uppercase">Menu Utama</span>
             </a>
-            <a href="log-sirkulasi.html" class="px-3 py-2 rounded-xl text-[9px] font-black uppercase bg-slate-100 text-slate-600">📜 Log</a>
+            <a href="log-sirkulasi.html" class="px-3 py-2 rounded-xl text-[9px] font-black uppercase bg-slate-100 text-slate-600 shadow-sm hover:bg-slate-200">📜 Riwayat</a>
         </div>
     </nav>
 
     <div class="max-w-2xl mx-auto px-4">
-        <div class="bg-blue-600 text-white p-6 rounded-[2.5rem] shadow-xl mb-6 border-b-8 border-blue-800">
-            <h1 class="text-xl font-black uppercase italic leading-none">Transaksi Buku 🔄</h1>
-            <p class="text-[9px] font-bold opacity-80 uppercase tracking-widest mt-2">Gunakan kamera untuk scan barcode</p>
+        <div class="bg-indigo-600 text-white p-6 rounded-[2.5rem] shadow-xl mb-6 border-b-8 border-indigo-800">
+            <h1 class="text-xl font-black uppercase italic leading-none text-yellow-400">Kasir Sirkulasi 🔄</h1>
+            <p class="text-[9px] font-bold opacity-80 uppercase tracking-widest mt-2 text-white">Sistem Scan Otomatis SDN 169</p>
         </div>
 
-        <div id="scannerArea" class="hidden mb-6 rounded-[2.5rem] overflow-hidden border-4 border-blue-500 bg-black relative shadow-2xl">
+        <div id="scannerArea" class="hidden mb-6 rounded-[2.5rem] overflow-hidden border-4 border-indigo-500 bg-black relative shadow-2xl">
             <div id="reader" style="width: 100%; min-height: 250px;"></div>
-            <button onclick="tutupScanner()" class="w-full bg-red-600 text-white py-4 font-black text-xs uppercase">Batal Scan ❌</button>
+            <button onclick="tutupScanner()" class="w-full bg-red-600 text-white py-4 font-black text-xs uppercase tracking-widest">Batal Scan ❌</button>
         </div>
 
         <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200 space-y-4">
+            
             <div class="relative">
-                <label class="text-[8px] font-black text-slate-400 ml-3 uppercase">Peminjam (ID/NIS)</label>
-                <input type="text" id="nisSiswa" onchange="cariSiswa()" placeholder="KETIK ID / SCAN..." class="w-full p-5 bg-slate-50 rounded-2xl font-black outline-none border-2 border-transparent focus:border-blue-500 uppercase text-sm tracking-widest">
-                <button onclick="bukaScanner('nisSiswa')" class="absolute right-2 top-[22px] bottom-2 bg-blue-600 text-white px-4 rounded-xl font-black text-[10px]">📷 SCAN</button>
+                <label class="text-[8px] font-black text-slate-400 ml-3 uppercase">1. Identitas Peminjam</label>
+                <input type="text" id="nisSiswa" placeholder="ID SISWA / SCAN..." 
+                    class="w-full p-5 bg-slate-50 rounded-2xl font-black outline-none border-2 border-transparent focus:border-indigo-500 uppercase text-sm tracking-widest transition-all">
+                <button onclick="bukaScanner('nisSiswa')" class="absolute right-2 top-[22px] bottom-2 bg-indigo-600 text-white px-4 rounded-xl font-black text-[10px] hover:bg-indigo-700">📷 SCAN</button>
             </div>
 
-            <div id="infoSiswa" class="hidden p-4 bg-blue-50 rounded-2xl border border-blue-100">
-                <p id="namaSiswaDisplay" class="font-black text-blue-900 uppercase text-sm"></p>
-                <p id="kelasSiswaDisplay" class="text-[10px] font-bold text-blue-500 uppercase"></p>
+            <div id="infoSiswa" class="hidden p-5 bg-blue-50 rounded-2xl border-2 border-blue-100 animate-pulse">
+                <div class="flex items-center gap-4">
+                    <div class="text-3xl">👤</div>
+                    <div>
+                        <p id="namaSiswaDisplay" class="font-black text-indigo-900 uppercase text-sm"></p>
+                        <p id="kelasSiswaDisplay" class="text-[10px] font-bold text-indigo-500 uppercase"></p>
+                    </div>
+                </div>
             </div>
+
+            <hr class="border-slate-100">
 
             <div class="relative">
-                <label class="text-[8px] font-black text-slate-400 ml-3 uppercase">Barcode Buku</label>
-                <input type="text" id="barcodeBuku" placeholder="KETIK KODE / SCAN..." class="w-full p-5 bg-slate-50 rounded-2xl font-black outline-none border-2 border-transparent focus:border-blue-500 uppercase text-sm tracking-widest">
-                <button onclick="bukaScanner('barcodeBuku')" class="absolute right-2 top-[22px] bottom-2 bg-orange-500 text-white px-4 rounded-xl font-black text-[10px]">📷 SCAN</button>
+                <label class="text-[8px] font-black text-slate-400 ml-3 uppercase">2. Barcode Buku</label>
+                <input type="text" id="barcodeBuku" placeholder="KODE BUKU / SCAN..." 
+                    class="w-full p-5 bg-slate-50 rounded-2xl font-black outline-none border-2 border-transparent focus:border-orange-500 uppercase text-sm tracking-widest transition-all">
+                <button onclick="bukaScanner('barcodeBuku')" class="absolute right-2 top-[22px] bottom-2 bg-orange-500 text-white px-4 rounded-xl font-black text-[10px] hover:bg-orange-600">📷 SCAN</button>
             </div>
 
-            <div class="grid grid-cols-2 gap-4 pt-2">
-                <button onclick="prosesTransaksi('PINJAM')" class="bg-blue-600 text-white font-black py-5 rounded-3xl shadow-lg hover:bg-blue-700 transition-all uppercase italic text-xs">Pinjam 📤</button>
-                <button onclick="prosesTransaksi('KEMBALI')" class="bg-emerald-500 text-white font-black py-5 rounded-3xl shadow-lg hover:bg-emerald-600 transition-all uppercase italic text-xs">Kembali 📥</button>
+            <div id="infoBuku" class="hidden p-5 bg-orange-50 rounded-2xl border-2 border-orange-100 animate-pulse">
+                <div class="flex items-center gap-4">
+                    <div class="text-3xl">📖</div>
+                    <div>
+                        <p id="judulBukuDisplay" class="font-black text-orange-900 uppercase text-sm"></p>
+                        <p id="stokBukuDisplay" class="text-[10px] font-bold text-orange-500 uppercase"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 pt-4">
+                <button onclick="prosesTransaksi('PINJAM')" class="bg-indigo-600 text-white font-black py-5 rounded-3xl shadow-lg hover:bg-indigo-700 active:scale-95 transition-all uppercase italic text-xs tracking-widest">Pinjam 📤</button>
+                <button onclick="prosesTransaksi('KEMBALI')" class="bg-emerald-500 text-white font-black py-5 rounded-3xl shadow-lg hover:bg-emerald-600 active:scale-95 transition-all uppercase italic text-xs tracking-widest">Kembali 📥</button>
             </div>
         </div>
     </div>
 
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyBXt0gEgczYD1jQ9OhNk5FGN8CePIFaSYw",
-            databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app"
-        };
+        const firebaseConfig = { databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app" };
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        let kodeOTPBenar = "";
-        let targetInputId = ""; 
         let html5QrCode = null;
 
-        function cekSesi() {
-            if (sessionStorage.getItem("aksesEPerpus") === "aktif") {
-                document.getElementById('otpOverlay').classList.add('hidden');
-            }
-        }
-
-        db.ref('sistem_keamanan/otp_katalog').on('value', snap => {
-            if(snap.exists()) kodeOTPBenar = snap.val().kode;
-        });
-
-        function verifikasiOTP() {
-            if(document.getElementById('inputOTP').value === kodeOTPBenar) {
-                sessionStorage.setItem("aksesEPerpus", "aktif");
-                document.getElementById('otpOverlay').classList.add('hidden');
-            } else { alert("KODE SALAH!"); }
-        }
+        document.getElementById('nisSiswa').addEventListener('input', (e) => cariSiswa(e.target.value.trim()));
+        document.getElementById('barcodeBuku').addEventListener('input', (e) => cariBuku(e.target.value.trim()));
 
         function bukaScanner(idTujuan) {
-            targetInputId = idTujuan;
             document.getElementById('scannerArea').classList.remove('hidden');
             html5QrCode = new Html5Qrcode("reader");
             html5QrCode.start(
                 { facingMode: "environment" }, 
-                { fps: 15, qrbox: { width: 250, height: 150 } },
+                { fps: 20, qrbox: { width: 250, height: 150 } },
                 (decodedText) => {
-                    document.getElementById(targetInputId).value = decodedText.trim();
-                    if(targetInputId === 'nisSiswa') cariSiswa(); 
+                    const hasil = decodedText.trim();
+                    document.getElementById(idTujuan).value = hasil;
+                    if(idTujuan === 'nisSiswa') cariSiswa(hasil);
+                    if(idTujuan === 'barcodeBuku') cariBuku(hasil);
                     tutupScanner();
+                    new Audio('https://www.soundjay.com/buttons/beep-07.mp3').play();
                 }
-            ).catch(err => { console.error(err); tutupScanner(); });
+            ).catch(err => alert("Kamera Error: " + err));
         }
 
         function tutupScanner() {
             if (html5QrCode) {
                 html5QrCode.stop().then(() => {
                     document.getElementById('scannerArea').classList.add('hidden');
-                }).catch(() => {
-                    document.getElementById('scannerArea').classList.add('hidden');
-                });
+                }).catch(() => document.getElementById('scannerArea').classList.add('hidden'));
             }
         }
 
-        // --- PERBAIKAN: Membaca folder 'anggota_perpus' ---
-        function cariSiswa() {
-            const nis = document.getElementById('nisSiswa').value.trim();
-            if(!nis) return;
-            
+        function cariSiswa(nis) {
+            if(!nis || nis.length < 3) return;
             db.ref('anggota_perpus/' + nis).once('value', snap => {
                 if(snap.exists()){
                     const s = snap.val();
@@ -135,44 +127,68 @@
                     document.getElementById('namaSiswaDisplay').innerText = s.nama;
                     document.getElementById('kelasSiswaDisplay').innerText = "Kelas: " + s.kelas;
                 } else {
-                    alert("ID Siswa [" + nis + "] Tidak Ditemukan! Pastikan sudah terdaftar di menu Anggota.");
                     document.getElementById('infoSiswa').classList.add('hidden');
-                    document.getElementById('nisSiswa').value = "";
                 }
             });
         }
 
+        function cariBuku(barcode) {
+            if(!barcode) return;
+            db.ref('koleksi_buku/' + barcode).once('value', snap => {
+                if(snap.exists()){
+                    const b = snap.val();
+                    document.getElementById('infoBuku').classList.remove('hidden');
+                    document.getElementById('judulBukuDisplay').innerText = b.judul;
+                    document.getElementById('stokBukuDisplay').innerText = "Tersedia: " + b.stok_tersedia + " Buku";
+                } else {
+                    document.getElementById('infoBuku').classList.add('hidden');
+                }
+            });
+        }
+
+        // --- BAGIAN YANG DISISIPKAN PERBAIKAN WAKTU ---
         function prosesTransaksi(tipe) {
             const nis = document.getElementById('nisSiswa').value;
             const barcode = document.getElementById('barcodeBuku').value;
             const nama = document.getElementById('namaSiswaDisplay').innerText;
+            const judul = document.getElementById('judulBukuDisplay').innerText;
             
-            if(!nis || !nama) return alert("Cari/Scan Siswa dulu!");
-            if(!barcode) return alert("Scan Barcode Buku dulu!");
+            if(!nis || !nama) return alert("❌ Siswa belum discan!");
+            if(!barcode || !judul) return alert("❌ Buku belum discan!");
 
             db.ref('koleksi_buku/' + barcode).once('value', snap => {
-                if(!snap.exists()) return alert("Buku tidak ditemukan di Katalog!");
-                
                 const buku = snap.val();
-                const tgl = new Date().toLocaleString('id-ID');
+                const stokSkrg = parseInt(buku.stok_tersedia);
                 
-                db.ref('perpus_laporan').push({
+                if(tipe === 'PINJAM' && stokSkrg <= 0) return alert("❌ Stok buku habis!");
+
+                const tglSkrg = new Date().toLocaleString('id-ID');
+                
+                // Data disesuaikan agar Riwayat tidak "undefined"
+                const dataLaporan = {
                     idSiswa: nis,
                     namaSiswa: nama,
-                    judulBuku: buku.judul,
-                    tgl: tgl,
+                    judulBuku: judul,
                     status: tipe === 'PINJAM' ? "DIPINJAM" : "DIKEMBALIKAN"
-                });
+                };
 
-                const stokBaru = tipe === 'PINJAM' ? (parseInt(buku.stok_tersedia) - 1) : (parseInt(buku.stok_tersedia) + 1);
+                if(tipe === 'PINJAM') {
+                    dataLaporan.waktuPinjam = tglSkrg;
+                    dataLaporan.waktuKembali = "-";
+                } else {
+                    dataLaporan.waktuPinjam = "-";
+                    dataLaporan.waktuKembali = tglSkrg;
+                }
+
+                db.ref('perpus_laporan').push(dataLaporan);
+
+                const stokBaru = tipe === 'PINJAM' ? (stokSkrg - 1) : (stokSkrg + 1);
                 db.ref('koleksi_buku/' + barcode).update({ stok_tersedia: stokBaru });
                 
-                alert("Berhasil! Status: " + (tipe === 'PINJAM' ? "Pinjam" : "Kembali"));
+                alert("✅ BERHASIL!\nSiswa: " + nama + "\nStatus: " + tipe);
                 location.reload();
             });
         }
-
-        window.onload = cekSesi;
     </script>
 </body>
 </html>
