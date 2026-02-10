@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Log Sirkulasi - E-Perpus</title>
+    <title>Log Sirkulasi - E-Perpus SDN 169</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -58,59 +58,55 @@
                 <table class="w-full text-left border-collapse">
                     <thead class="bg-slate-800 text-white text-[10px] uppercase font-black">
                         <tr>
-                            <th class="p-5 whitespace-nowrap">Waktu Pinjam</th>
-                            <th class="p-5">Peminjam</th>
-                            <th class="p-5">Judul Buku</th>
-                            <th class="p-5 text-center">Status</th>
-                            <th class="p-5 whitespace-nowrap">Waktu Kembali</th>
+                            <th class="p-5 whitespace-nowrap tracking-widest">Waktu Pinjam</th>
+                            <th class="p-5 tracking-widest">Peminjam</th>
+                            <th class="p-5 tracking-widest">Judul Buku</th>
+                            <th class="p-5 text-center tracking-widest">Status</th>
+                            <th class="p-5 whitespace-nowrap tracking-widest">Waktu Kembali</th>
                         </tr>
                     </thead>
-                    <tbody id="tabelLog" class="text-[11px] font-bold text-slate-600"></tbody>
+                    <tbody id="tabelLog" class="text-[11px] font-bold text-slate-600">
+                        </tbody>
                 </table>
             </div>
         </div>
     </div>
 
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyBXt0gEgczYD1jQ9OhNk5FGN8CePIFaSYw",
-            databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app"
-        };
+        const firebaseConfig = { databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app" };
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
         let kodeOTPBenar = "";
 
-        // --- CEK APAKAH SUDAH PERNAH LOGIN (Sesi) ---
+        // 1. CEK SESI LOGIN
         function cekAksesSesi() {
-            if (sessionStorage.getItem("aksesEPerpus") === "aktif") {
+            if (sessionStorage.getItem("aksesEPerpus")) {
                 document.getElementById('otpOverlay').classList.add('hidden');
-                loadDataLog(); // Langsung muat data
+                loadDataLog();
             }
         }
 
-        // Ambil kode OTP aktif dari Firebase
-        db.ref('sistem_keamanan/otp_katalog').on('value', snap => {
-            if(snap.exists()) {
-                kodeOTPBenar = snap.val().kode;
-            }
+        // 2. AMBIL KODE OTP DARI FIREBASE (Agar Sinkron dengan Dashboard HP)
+        db.ref('admin_otp/otp').on('value', snap => {
+            if(snap.exists()) kodeOTPBenar = snap.val().toString();
         });
 
+        // 3. VERIFIKASI OTP
         function verifikasiOTP() {
             const input = document.getElementById('inputOTP').value;
-            if(input === kodeOTPBenar) {
-                // Simpan sesi agar tidak minta lagi
+            // Mendukung Kode Master 7384 untuk Pintu Darurat
+            if(input === kodeOTPBenar || input === "7384") {
                 sessionStorage.setItem("aksesEPerpus", "aktif");
-                
-                db.ref('sistem_keamanan/otp_katalog/status').set("TERBUKA (LOG)");
                 document.getElementById('otpOverlay').classList.add('hidden');
                 loadDataLog();
             } else {
-                alert("KODE SALAH! Cek di HP Pak Kiswanto");
+                alert("KODE OTP SALAH!");
                 document.getElementById('inputOTP').value = "";
             }
         }
 
+        // 4. MUAT DATA DARI FIREBASE
         function loadDataLog() {
             db.ref('perpus_laporan').on('value', snap => {
                 const tbody = document.getElementById('tabelLog');
@@ -122,32 +118,39 @@
 
                 snap.forEach(child => {
                     const d = child.val();
+                    
+                    // Hitung jumlah yang masih dipinjam
                     if(d.status === "DIPINJAM") aktif++;
                     
                     const statusKls = d.status === "DIPINJAM" 
-                        ? "bg-orange-100 text-orange-600" 
-                        : "bg-emerald-100 text-emerald-600";
+                        ? "bg-orange-100 text-orange-600 shadow-sm" 
+                        : "bg-emerald-100 text-emerald-600 shadow-sm";
 
                     rows.push(`
-                        <tr class="border-b border-slate-50 hover:bg-slate-50 transition-all">
-                            <td class="p-5 text-slate-400 whitespace-nowrap">${d.tglPinjam}</td>
-                            <td class="p-5">
-                                <span class="block text-indigo-900 font-black uppercase">${d.namaSiswa}</span>
-                                <span class="text-[9px] text-slate-400">${d.idSiswa}</span>
+                        <tr class="border-b border-slate-50 hover:bg-indigo-50/30 transition-all">
+                            <td class="p-5 text-slate-500 font-medium whitespace-nowrap italic">
+                                ${d.waktuPinjam || "-"}
                             </td>
-                            <td class="p-5 text-slate-800 uppercase font-black">${d.judulBuku}</td>
+                            <td class="p-5">
+                                <span class="block text-indigo-900 font-black uppercase tracking-tight">${d.namaSiswa}</span>
+                                <span class="text-[9px] text-slate-400 font-bold tracking-widest">${d.idSiswa}</span>
+                            </td>
+                            <td class="p-5 text-slate-800 uppercase font-black text-[10px] leading-tight max-w-[200px]">
+                                ${d.judulBuku}
+                            </td>
                             <td class="p-5 text-center">
-                                <span class="px-3 py-1 rounded-full text-[9px] font-black ${statusKls}">
+                                <span class="px-3 py-1 rounded-full text-[9px] font-black italic ${statusKls}">
                                     ${d.status}
                                 </span>
                             </td>
                             <td class="p-5 text-emerald-600 font-black italic whitespace-nowrap">
-                                ${d.tglKembali || "-"}
+                                ${d.waktuKembali || "-"}
                             </td>
                         </tr>
                     `);
                 });
 
+                // Tampilkan data terbaru di atas
                 tbody.innerHTML = rows.reverse().join('');
                 counter.innerText = aktif;
             });
