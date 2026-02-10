@@ -11,55 +11,62 @@
         <div class="max-w-xl mx-auto flex justify-between items-center">
             <div>
                 <p class="text-indigo-200 text-xs font-bold uppercase tracking-widest mb-1">Selamat Bertugas,</p>
-                <h1 class="text-2xl font-black italic tracking-tight uppercase">Petugas Perpus 📚</h1>
+                <h1 class="text-2xl font-black italic tracking-tight uppercase text-yellow-400">Petugas Perpus 📚</h1>
             </div>
-            <div class="h-12 w-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl">👤</div>
+            <div class="h-12 w-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl border border-white/30 shadow-inner">👤</div>
         </div>
     </header>
 
     <main class="max-w-xl mx-auto px-6 -mt-16">
         <div class="grid grid-cols-2 gap-4">
-            <a href="sirkulasi.html" class="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center text-center hover:scale-95 transition-all">
-                <div class="h-16 w-16 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center text-3xl mb-4">🔄</div>
-                <h3 class="font-black uppercase italic text-[11px]">Sirkulasi</h3>
-                <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase">Pinjam & Kembali</p>
+            
+            <a href="peminjaman.html" class="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center text-center hover:scale-95 hover:bg-blue-50 transition-all group">
+                <div class="h-16 w-16 bg-blue-50 group-hover:bg-blue-600 group-hover:text-white text-blue-600 rounded-3xl flex items-center justify-center text-3xl mb-4 transition-colors">➕</div>
+                <h3 class="font-black uppercase italic text-[11px]">Pinjam Buku</h3>
+                <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase">Scan Kartu Siswa</p>
             </a>
 
-            <a href="katalog.html" class="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center text-center hover:scale-95 transition-all">
-                <div class="h-16 w-16 bg-orange-50 text-orange-600 rounded-3xl flex items-center justify-center text-3xl mb-4">📖</div>
-                <h3 class="font-black uppercase italic text-[11px]">Katalog</h3>
-                <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase">Manajemen Buku</p>
+            <a href="pengembalian.html" class="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center text-center hover:scale-95 hover:bg-emerald-50 transition-all group">
+                <div class="h-16 w-16 bg-emerald-50 group-hover:bg-emerald-600 group-hover:text-white text-emerald-600 rounded-3xl flex items-center justify-center text-3xl mb-4 transition-colors">✅</div>
+                <h3 class="font-black uppercase italic text-[11px]">Pengembalian</h3>
+                <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase">Denda & Potong Saldo</p>
             </a>
 
-            <a href="daftar-anggota.html" class="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center text-center hover:scale-95 transition-all">
-                <div class="h-16 w-16 bg-emerald-50 text-emerald-600 rounded-3xl flex items-center justify-center text-3xl mb-4">👤</div>
+            <a href="daftar-anggota.html" class="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center text-center hover:scale-95 transition-all group">
+                <div class="h-16 w-16 bg-orange-50 group-hover:bg-orange-600 group-hover:text-white text-orange-600 rounded-3xl flex items-center justify-center text-3xl mb-4 transition-colors">👥</div>
                 <h3 class="font-black uppercase italic text-[11px]">Anggota</h3>
-                <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase">Daftar Member</p>
+                <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase">Database Member</p>
             </a>
 
-            <button onclick="keluarSistem()" class="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center text-center hover:scale-95 transition-all">
-                <div class="h-16 w-16 bg-red-50 text-red-600 rounded-3xl flex items-center justify-center text-3xl mb-4">🔒</div>
-                <h3 class="font-black uppercase italic text-[11px]">Kunci</h3>
-                <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase">Keluar Sistem</p>
+            <button onclick="keluarSistem()" class="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center text-center hover:scale-95 transition-all group">
+                <div class="h-16 w-16 bg-red-50 group-hover:bg-red-600 group-hover:text-white text-red-600 rounded-3xl flex items-center justify-center text-3xl mb-4 transition-colors">🔒</div>
+                <h3 class="font-black uppercase italic text-[11px]">Logout</h3>
+                <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase">Kunci Dashboard</p>
             </button>
         </div>
 
-        <div class="mt-10">
-            <a href="admin-cek-log.html" class="bg-slate-900 text-white p-5 rounded-[2rem] flex items-center gap-4 border-b-4 border-slate-700">
+        <div class="mt-8">
+            <a href="riwayat.html" class="bg-slate-900 text-white p-5 rounded-[2.5rem] flex items-center gap-4 border-b-4 border-slate-700 hover:bg-slate-800 transition-all">
                 <div class="h-12 w-12 bg-white/10 rounded-2xl flex items-center justify-center text-xl">🕵️</div>
-                <div>
-                    <h3 class="font-black uppercase italic text-[11px]">Monitoring Guru</h3>
-                    <p class="text-[8px] font-bold text-slate-400 uppercase">Cek OTP & Audit Log</p>
+                <div class="flex-1">
+                    <h3 class="font-black uppercase italic text-[11px]">Monitoring & Riwayat</h3>
+                    <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Audit Pengembalian & Denda</p>
                 </div>
+                <div class="text-xs">➔</div>
             </a>
         </div>
     </main>
 
+    <footer class="mt-12 text-center pb-8">
+        <p class="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">E-Perpus Indonesia Hebat</p>
+    </footer>
+
     <script>
         function keluarSistem() {
-            sessionStorage.removeItem("aksesEPerpus");
-            alert("Sistem Terkunci!");
-            window.location.href = "index.html";
+            if(confirm("Yakin ingin mengunci sistem?")) {
+                sessionStorage.removeItem("aksesEPerpus");
+                window.location.href = "index.html";
+            }
         }
     </script>
 </body>
