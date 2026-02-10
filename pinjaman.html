@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Input Peminjaman - E-Perpus</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 min-h-screen p-4 flex items-center justify-center font-sans">
+
+    <div class="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden border-b-[12px] border-emerald-600">
+        <div class="bg-emerald-600 p-8 text-center text-white">
+            <h1 class="text-2xl font-black italic uppercase tracking-tighter">Pinjam Buku 📖</h1>
+            <p class="text-[10px] font-bold opacity-80 uppercase tracking-widest mt-1">Input Data Peminjaman Baru</p>
+        </div>
+
+        <div class="p-8 space-y-4">
+            <div>
+                <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Nama Peminjam</label>
+                <input type="text" id="namaSiswa" placeholder="NAMA LENGKAP SISWA" class="w-full bg-slate-100 p-4 rounded-2xl font-black text-slate-700 outline-none focus:ring-2 ring-emerald-500 uppercase">
+            </div>
+
+            <div>
+                <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Judul Buku</label>
+                <input type="text" id="judulBuku" placeholder="JUDUL BUKU / KODE BUKU" class="w-full bg-slate-100 p-4 rounded-2xl font-black text-slate-700 outline-none focus:ring-2 ring-emerald-500 uppercase">
+            </div>
+
+            <div>
+                <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Deadline Kembali</label>
+                <input type="date" id="tglKembali" class="w-full bg-slate-100 p-4 rounded-2xl font-black text-slate-700 outline-none focus:ring-2 ring-emerald-500">
+            </div>
+
+            <button onclick="simpanPinjaman()" class="w-full bg-emerald-600 text-white font-black py-5 rounded-3xl shadow-lg uppercase italic text-sm hover:bg-emerald-700 transition-all">
+                Konfirmasi Pinjaman 🚀
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = { databaseURL: "https://ceklist-anak-indonesia-hebat-default-rtdb.asia-southeast1.firebasedatabase.app" };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        function simpanPinjaman() {
+            const nama = document.getElementById('namaSiswa').value.trim().toUpperCase();
+            const buku = document.getElementById('judulBuku').value.trim().toUpperCase();
+            const tgl = document.getElementById('tglKembali').value;
+
+            if (!nama || !buku || !tgl) {
+                return alert("Mohon lengkapi semua data!");
+            }
+
+            // Simpan ke node 'pinjaman_aktif'
+            // Data ini yang nanti akan dibaca oleh halaman pengembalian
+            const pinjamanBaru = {
+                nama_siswa: nama,
+                judul_buku: buku,
+                tgl_pinjam: new Date().toLocaleDateString('id-ID'),
+                tgl_kembali: tgl, // Format otomatis YYYY-MM-DD dari input date
+                status: "DIPINJAM"
+            };
+
+            db.ref('pinjaman_aktif').push(pinjamanBaru).then(() => {
+                alert("✅ Data Berhasil Disimpan! Selamat membaca.");
+                // Reset Form
+                document.getElementById('namaSiswa').value = "";
+                document.getElementById('judulBuku').value = "";
+                document.getElementById('tglKembali').value = "";
+            });
+        }
+    </script>
+</body>
+</html>
