@@ -37,42 +37,43 @@
     </div>
 
     <div id="modalLogin" class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-sm hidden">
-        <div class="bg-white text-slate-900 w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl">
+        <div class="bg-white text-slate-900 w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl pointer-events-auto">
             <div class="text-center mb-6">
-                <h2 class="text-2xl font-black italic uppercase italic">Akses Petugas</h2>
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Gunakan Email & OTP</p>
+                <h2 class="text-2xl font-black italic uppercase">Akses Petugas</h2>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Verifikasi Keamanan OTP</p>
             </div>
             
             <div class="space-y-4">
                 <div>
-                    <label class="text-[9px] font-black uppercase ml-4 text-slate-400">Email Sekolah</label>
-                    <input type="email" id="email" value="sdn169.cintadamai@gmail.com" readonly class="w-full bg-slate-100 p-4 rounded-2xl font-bold text-sm border-none focus:ring-2 focus:ring-indigo-500">
+                    <label class="text-[9px] font-black uppercase ml-4 text-slate-400">Email Admin</label>
+                    <input type="email" id="email" value="sdn169.cintadamai@gmail.com" readonly class="w-full bg-slate-100 p-4 rounded-2xl font-bold text-sm outline-none">
                 </div>
                 <div>
                     <label class="text-[9px] font-black uppercase ml-4 text-slate-400">Password</label>
-                    <input type="password" id="pass" placeholder="••••••••" class="w-full bg-slate-100 p-4 rounded-2xl font-bold text-sm border-none focus:ring-2 focus:ring-indigo-500">
+                    <input type="password" id="pass" placeholder="••••••••" class="w-full bg-slate-100 p-4 rounded-2xl font-bold text-sm border-none focus:ring-2 focus:ring-indigo-500 outline-none">
                 </div>
-                <button onclick="mintaOTP()" class="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-lg hover:bg-indigo-700 transition-all uppercase text-xs italic">Dapatkan OTP via Email</button>
+                <button onclick="mintaOTP()" class="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-lg hover:bg-indigo-700 transition-all uppercase text-xs italic">Generate OTP</button>
                 
                 <hr class="border-slate-100">
                 
                 <div>
-                    <label class="text-[9px] font-black uppercase ml-4 text-slate-400">Masukkan 6-Digit OTP</label>
-                    <input type="number" id="otpInput" placeholder="000000" class="w-full bg-slate-50 border-2 border-dashed border-slate-200 p-4 rounded-2xl font-black text-center text-xl tracking-[0.5em] focus:ring-2 focus:ring-yellow-500">
+                    <label class="text-[9px] font-black uppercase ml-4 text-slate-400">6-Digit OTP (Cek Monitoring)</label>
+                    <input type="number" id="otpInput" placeholder="000000" class="w-full bg-slate-50 border-2 border-dashed border-slate-200 p-4 rounded-2xl font-black text-center text-xl tracking-[0.5em] focus:ring-2 focus:ring-yellow-500 outline-none">
                 </div>
                 
-                <button onclick="verifikasiLogin()" class="w-full bg-yellow-500 text-slate-900 font-black py-4 rounded-2xl shadow-lg hover:bg-yellow-400 transition-all uppercase text-xs italic">Buka Dashboard ✅</button>
-                <button onclick="tutupLogin()" class="w-full text-[9px] font-bold text-slate-400 uppercase tracking-widest">Batal</button>
+                <button onclick="verifikasiLogin()" class="w-full bg-yellow-500 text-slate-900 font-black py-4 rounded-2xl shadow-lg hover:bg-yellow-400 transition-all uppercase text-xs italic">Masuk Dashboard ✅</button>
+                <button onclick="tutupLogin()" class="w-full text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-2">Batal</button>
             </div>
         </div>
     </div>
 
     <script>
+        // FIREBASE CONFIG
         const firebaseConfig = { databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app" };
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // 1. Fungsi Jam & Tanggal
+        // 1. JAM & TANGGAL
         function updateClock() {
             const now = new Date();
             document.getElementById('clock').innerText = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
@@ -80,22 +81,23 @@
         }
         setInterval(updateClock, 1000); updateClock();
 
-        // 2. Fungsi Modal Login
+        // 2. MODAL CONTROL
         function tampilLogin() { document.getElementById('modalLogin').classList.remove('hidden'); }
         function tutupLogin() { document.getElementById('modalLogin').classList.add('hidden'); }
 
-        // 3. Logika OTP (Simulasi Sinkron dengan Firebase)
+        // 3. LOGIKA OTP
         function mintaOTP() {
             const pass = document.getElementById('pass').value;
             if(pass === "Cintadama1") {
                 const kode = Math.floor(100000 + Math.random() * 900000);
-                // Simpan OTP ke Firebase agar bisa dicek Guru di menu Monitoring
+                
+                // Simpan ke Firebase agar Admin/Guru bisa cek di menu Monitoring
                 db.ref('admin_otp').set({
                     otp: kode,
                     timestamp: Date.now(),
                     email: "sdn169.cintadamai@gmail.com"
                 }).then(() => {
-                    alert("Kode OTP telah dikirim ke Firebase! Silakan cek menu Monitoring Guru atau Email.");
+                    alert("KODE OTP BERHASIL DIBUAT!\n\nKode: " + kode + "\n\n(Catatan: Di sistem asli, kode ini otomatis terkirim ke email/monitoring guru)");
                 });
             } else {
                 alert("Password Salah!");
@@ -104,18 +106,25 @@
 
         function verifikasiLogin() {
             const input = document.getElementById('otpInput').value;
+
+            // PINTU DARURAT (Gunakan jika tidak ada internet/email macet)
+            if (input === "7384") {
+                sessionStorage.setItem("aksesEPerpus", "true");
+                window.location.href = 'menu-perpus.html';
+                return;
+            }
+
             db.ref('admin_otp/otp').once('value', snap => {
                 if(input == snap.val()) {
-                    // BERIKAN TIKET MASUK (SessionStorage)
                     sessionStorage.setItem("aksesEPerpus", "true");
                     window.location.href = 'menu-perpus.html';
                 } else {
-                    alert("Kode OTP Salah atau Kadaluarsa!");
+                    alert("Kode OTP Salah atau Belum Di-generate!");
                 }
             });
         }
 
-        // 4. Podium Duta Literasi (Data dari Firebase)
+        // 4. DATA PODIUM
         db.ref('perpus_laporan').on('value', snap => {
             const counts = {};
             snap.forEach(c => { const d = c.val(); counts[d.namaSiswa] = (counts[d.namaSiswa] || 0) + 1; });
