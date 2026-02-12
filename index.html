@@ -22,15 +22,16 @@
 
     <div class="relative z-10 flex flex-col items-center justify-between min-h-screen p-8 pb-16 pointer-events-none">
         <div class="text-center mt-10">
-            <h2 id="clock" class="text-6xl font-black tracking-tighter">00:00</h2>
-            <p id="date" class="text-xs font-bold uppercase tracking-[0.4em] opacity-70">Memuat Tanggal...</p>
+            <h2 id="clock" class="text-6xl font-black tracking-tighter shadow-xl">00:00</h2>
+            <p id="date" class="text-xs font-bold uppercase tracking-[0.4em] opacity-70 mt-2">Memuat Tanggal...</p>
         </div>
 
         <div class="w-full max-w-md">
             <div class="text-center mb-6">
                 <span class="bg-yellow-500 text-slate-900 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">🏆 Duta Literasi Terajin</span>
             </div>
-            <div id="podium" class="flex items-end justify-around h-48 mb-4"></div>
+            <div id="podium" class="flex items-end justify-around h-48 mb-4">
+                </div>
         </div>
 
         <div class="text-center animate-bounce opacity-50 font-black text-[10px] uppercase tracking-[0.3em]">Ketuk Layar Untuk Masuk 👆</div>
@@ -39,41 +40,36 @@
     <div id="modalLogin" class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-sm hidden">
         <div class="bg-white text-slate-900 w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl pointer-events-auto">
             <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">🔐</div>
                 <h2 class="text-2xl font-black italic uppercase">Akses Petugas</h2>
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Verifikasi Keamanan OTP</p>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">SDN 165 TANJUNG JABUNG</p>
             </div>
             
             <div class="space-y-4">
                 <div>
                     <label class="text-[9px] font-black uppercase ml-4 text-slate-400">Email Admin</label>
-                    <input type="email" id="email" value="sdn169.cintadamai@gmail.com" readonly class="w-full bg-slate-100 p-4 rounded-2xl font-bold text-sm outline-none">
+                    <input type="email" id="email" value="sdn169.cintadamai@gmail.com" readonly class="w-full bg-slate-100 p-4 rounded-2xl font-bold text-sm outline-none border-2 border-transparent focus:border-indigo-500 transition-all">
                 </div>
                 <div>
                     <label class="text-[9px] font-black uppercase ml-4 text-slate-400">Password</label>
-                    <input type="password" id="pass" placeholder="••••••••" class="w-full bg-slate-100 p-4 rounded-2xl font-bold text-sm border-none focus:ring-2 focus:ring-indigo-500 outline-none">
-                </div>
-                <button onclick="mintaOTP()" class="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-lg hover:bg-indigo-700 transition-all uppercase text-xs italic">Generate OTP</button>
-                
-                <hr class="border-slate-100">
-                
-                <div>
-                    <label class="text-[9px] font-black uppercase ml-4 text-slate-400">6-Digit OTP (Cek Monitoring)</label>
-                    <input type="number" id="otpInput" placeholder="000000" class="w-full bg-slate-50 border-2 border-dashed border-slate-200 p-4 rounded-2xl font-black text-center text-xl tracking-[0.5em] focus:ring-2 focus:ring-yellow-500 outline-none">
+                    <input type="password" id="pass" placeholder="Masukkan Password..." class="w-full bg-slate-100 p-4 rounded-2xl font-bold text-sm border-2 border-transparent focus:border-indigo-500 outline-none transition-all">
                 </div>
                 
-                <button onclick="verifikasiLogin()" class="w-full bg-yellow-500 text-slate-900 font-black py-4 rounded-2xl shadow-lg hover:bg-yellow-400 transition-all uppercase text-xs italic">Masuk Dashboard ✅</button>
-                <button onclick="tutupLogin()" class="w-full text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-2">Batal</button>
+                <div class="pt-2">
+                    <button onclick="verifikasiLogin()" class="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-lg hover:bg-indigo-700 transition-all uppercase text-xs italic tracking-widest">Masuk Sekarang 🚀</button>
+                    <button onclick="tutupLogin()" class="w-full text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-6 hover:text-red-500 transition-colors">Kembali</button>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        // FIREBASE CONFIG
+        // 1. FIREBASE SETUP
         const firebaseConfig = { databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app" };
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // 1. JAM & TANGGAL
+        // 2. JAM & TANGGAL (REALTIME)
         function updateClock() {
             const now = new Date();
             document.getElementById('clock').innerText = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
@@ -81,64 +77,61 @@
         }
         setInterval(updateClock, 1000); updateClock();
 
-        // 2. MODAL CONTROL
-        function tampilLogin() { document.getElementById('modalLogin').classList.remove('hidden'); }
+        // 3. KONTROL MODAL
+        function tampilLogin() { 
+            document.getElementById('modalLogin').classList.remove('hidden'); 
+            document.getElementById('pass').focus();
+        }
         function tutupLogin() { document.getElementById('modalLogin').classList.add('hidden'); }
 
-        // 3. LOGIKA OTP
-        function mintaOTP() {
-            const pass = document.getElementById('pass').value;
-            if(pass === "Cintadama1") {
-                const kode = Math.floor(100000 + Math.random() * 900000);
-                
-                // Simpan ke Firebase agar Admin/Guru bisa cek di menu Monitoring
-                db.ref('admin_otp').set({
-                    otp: kode,
-                    timestamp: Date.now(),
-                    email: "sdn169.cintadamai@gmail.com"
-                }).then(() => {
-                    alert("KODE OTP BERHASIL DIBUAT!\n\nKode: " + kode + "\n\n(Catatan: Di sistem asli, kode ini otomatis terkirim ke email/monitoring guru)");
-                });
-            } else {
-                alert("Password Salah!");
-            }
-        }
-
+        // 4. LOGIKA LOGIN (TANPA OTP)
         function verifikasiLogin() {
-            const input = document.getElementById('otpInput').value;
+            const passInput = document.getElementById('pass').value;
 
-            // PINTU DARURAT (Gunakan jika tidak ada internet/email macet)
-            if (input === "7384") {
+            // Password sesuai permintaan Bapak atau Master Key
+            if(passInput === "Cintadama1" || passInput === "7384") {
                 sessionStorage.setItem("aksesEPerpus", "true");
-                window.location.href = 'menu-perpus.html';
-                return;
-            }
-
-            db.ref('admin_otp/otp').once('value', snap => {
-                if(input == snap.val()) {
-                    sessionStorage.setItem("aksesEPerpus", "true");
+                
+                // Animasi sebelum pindah halaman
+                document.querySelector('#modalLogin div').innerHTML = "<div class='text-center p-10'><div class='animate-spin text-4xl mb-4'>🌀</div><p class='font-black italic uppercase'>Membuka Dashboard...</p></div>";
+                
+                setTimeout(() => {
                     window.location.href = 'menu-perpus.html';
-                } else {
-                    alert("Kode OTP Salah atau Belum Di-generate!");
-                }
-            });
+                }, 800);
+            } else {
+                alert("Password Salah, Pak!");
+                document.getElementById('pass').value = "";
+            }
         }
 
-        // 4. DATA PODIUM
+        // 5. DATA PODIUM (Duta Literasi)
         db.ref('perpus_laporan').on('value', snap => {
             const counts = {};
-            snap.forEach(c => { const d = c.val(); counts[d.namaSiswa] = (counts[d.namaSiswa] || 0) + 1; });
-            const sorted = Object.keys(counts).map(n => ({ nama: n, total: counts[n] })).sort((a,b) => b.total - a.total).slice(0,3);
+            if(!snap.exists()) return;
+
+            snap.forEach(c => { 
+                const d = c.val(); 
+                if(d.namaSiswa) counts[d.namaSiswa] = (counts[d.namaSiswa] || 0) + 1; 
+            });
+
+            const sorted = Object.keys(counts)
+                .map(n => ({ nama: n, total: counts[n] }))
+                .sort((a,b) => b.total - a.total)
+                .slice(0,3);
+
             const podiumEl = document.getElementById('podium');
+            // Urutan podium: 2 - 1 - 3
             const order = [sorted[1], sorted[0], sorted[2]];
+            
             podiumEl.innerHTML = order.map((s,i) => {
                 if(!s) return `<div class="w-1/3"></div>`;
                 const isFirst = s.nama === sorted[0].nama;
-                return `<div class="flex flex-col items-center w-1/3 px-1 pointer-events-auto">
-                    <div class="glass ${isFirst ? 'h-32 shadow-yellow-500/20' : 'h-24'} w-full rounded-2xl flex flex-col items-center justify-center">
-                        <span class="text-xl">${isFirst ? '🥇' : (i === 0 ? '🥈' : '🥉')}</span>
-                        <p class="text-[8px] font-black uppercase truncate w-full px-2 text-center">${s.nama}</p>
-                        <p class="text-xl font-black">${s.total}</p>
+                return `
+                <div class="flex flex-col items-center w-1/3 px-1 pointer-events-auto">
+                    <div class="glass ${isFirst ? 'h-32 border-yellow-500/50' : 'h-24'} w-full rounded-2xl flex flex-col items-center justify-center transition-all duration-500">
+                        <span class="text-xl mb-1">${isFirst ? '🥇' : (i === 0 ? '🥈' : '🥉')}</span>
+                        <p class="text-[8px] font-black uppercase truncate w-full px-2 text-center text-white/90">${s.nama}</p>
+                        <p class="text-xl font-black text-yellow-400">${s.total}</p>
                     </div>
                 </div>`;
             }).join('');
