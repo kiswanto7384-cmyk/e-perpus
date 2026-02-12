@@ -11,6 +11,8 @@
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* Animasi agar lebih keren */
+        .glow-emerald { box-shadow: 0 0 20px rgba(16, 185, 129, 0.2); }
     </style>
 </head>
 <body class="bg-slate-50 font-sans min-h-screen pb-10">
@@ -44,8 +46,8 @@
         <div class="bg-white p-6 rounded-[2.5rem] shadow-md border border-slate-100">
             <div class="space-y-4">
                 <div class="relative">
-                    <label class="text-[9px] font-black text-slate-400 uppercase ml-3">ID Kartu (Scan untuk Auto-Fill)</label>
-                    <input type="text" id="idSiswa" placeholder="KLIK SCAN..." class="w-full p-4 bg-slate-100 rounded-2xl font-black outline-none border-2 border-transparent focus:border-indigo-500 text-indigo-900">
+                    <label class="text-[9px] font-black text-slate-400 uppercase ml-3">ID Kartu (Scan atau Ketik)</label>
+                    <input type="text" id="idSiswa" onchange="cariDataKantin(this.value)" placeholder="INPUT ID..." class="w-full p-4 bg-slate-100 rounded-2xl font-black outline-none border-2 border-transparent focus:border-indigo-500 text-indigo-900">
                     <button onclick="bukaScanner()" class="absolute right-2 top-7 bg-indigo-600 text-white px-5 py-2 rounded-2xl font-black text-xs hover:bg-indigo-700 active:scale-95 transition-all">SCAN 📷</button>
                 </div>
                 
@@ -60,32 +62,33 @@
                 </div>
             </div>
             
-            <button onclick="simpanSiswa()" class="w-full mt-6 bg-emerald-500 text-white font-black py-5 rounded-[2rem] shadow-lg shadow-emerald-100 uppercase tracking-[0.2em] text-xs hover:bg-emerald-600 transition-all">
+            <button onclick="simpanSiswa()" class="glow-emerald w-full mt-6 bg-emerald-500 text-white font-black py-5 rounded-[2rem] shadow-lg uppercase tracking-[0.2em] text-xs hover:bg-emerald-600 transition-all">
                 Aktifkan Anggota Perpus ✅
             </button>
         </div>
 
-        <div id="listAnggota" class="mt-8 space-y-3"></div>
+        <div class="mt-8">
+            <h2 class="text-[10px] font-black text-slate-400 uppercase mb-4 ml-4">Anggota Terdaftar Baru-baru Ini</h2>
+            <div id="listAnggota" class="space-y-3"></div>
+        </div>
     </div>
 
     <script>
-        // --- KONFIGURASI DUA DATABASE ---
+        // --- PERBAIKAN KONFIGURASI ---
         
-        // 1. Database Kantin (Hanya untuk ambil data nama)
         const configKantin = {
             apiKey: "AIzaSyCUjE8WXa8Py4vnojrXDUR3uCvnQEzP6zQ",
             databaseURL: "https://e-kantin-91f0c-default-rtdb.asia-southeast1.firebasedatabase.app"
         };
 
-        // 2. Database Perpus (Untuk simpan data anggota tetap)
         const configPerpus = {
             apiKey: "AIzaSyBXt0gEgczYD1jQ9OhNk5FGN8CePIFaSYw",
             databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app"
         };
 
-        // Inisialisasi
-        const appKantin = firebase.initializeApp(configKantin, "kantin");
-        const appPerpus = firebase.initializeApp(configPerpus, "perpus");
+        // Inisialisasi Apps dengan pengecekan agar tidak error saat reload
+        const appKantin = !firebase.apps.length ? firebase.initializeApp(configKantin, "kantin") : firebase.app("kantin");
+        const appPerpus = firebase.apps.length < 2 ? firebase.initializeApp(configPerpus, "perpus") : firebase.app("perpus");
 
         const dbKantin = appKantin.database();
         const dbPerpus = appPerpus.database();
@@ -100,7 +103,7 @@
                 document.getElementById('idSiswa').value = scannedId;
                 tutupScanner();
                 cariDataKantin(scannedId); 
-            }).catch(err => { alert("Kamera Error"); tutupScanner(); });
+            }).catch(err => { console.error(err); tutupScanner(); });
         }
 
         function tutupScanner() {
@@ -111,53 +114,73 @@
             }
         }
 
-        // Cari Nama di Database KANTIN
+        // Cari Nama di Database KANTIN (TETAP SAMA)
         function cariDataKantin(id) {
+            if(!id) return;
             dbKantin.ref('kantin_users/' + id).once('value').then((snap) => {
                 const data = snap.val();
                 if(data) {
                     document.getElementById('namaSiswa').value = data.nama || "";
                     document.getElementById('kelasSiswa').value = data.kelas || "-";
                 } else {
-                    alert("ID [" + id + "] Belum terdaftar di Kantin!");
+                    alert("ID [" + id + "] Tidak Ditemukan di Database Kantin. Masukkan Nama Manual.");
                 }
             });
         }
 
-        // Simpan Permanen ke Database PERPUS
+        // SIMPAN KE PERPUS (DIPERKUAT)
         function simpanSiswa() {
             const id = document.getElementById('idSiswa').value.trim();
             const nama = document.getElementById('namaSiswa').value.trim().toUpperCase();
             const kelas = document.getElementById('kelasSiswa').value.trim().toUpperCase();
 
             if(id && nama) {
+                // Menggunakan set() agar ID menjadi kunci unik (Anti Duplikat)
                 dbPerpus.ref('anggota_perpus/' + id).set({
-                    id, nama, kelas,
-                    tgl_daftar: new Date().toLocaleDateString('id-ID'),
+                    id: id,
+                    nama: nama,
+                    kelas: kelas,
+                    tgl_daftar: new Date().toLocaleString('id-ID'),
                     status: "AKTIF"
                 }).then(() => {
-                    alert("✅ " + nama + " Berhasil Aktif di Perpus!");
+                    alert("✅ MEMBER BERHASIL DISIMPAN PERMANEN");
+                    // Reset Form
                     document.getElementById('idSiswa').value = "";
                     document.getElementById('namaSiswa').value = "";
                     document.getElementById('kelasSiswa').value = "";
+                }).catch(err => {
+                    alert("Gagal Simpan: " + err.message);
                 });
-            } else { alert("Scan kartu dulu, Pak!"); }
+            } else { 
+                alert("Isi ID dan Nama dulu, Pak!"); 
+            }
         }
 
-        // Tampilkan Daftar dari Database PERPUS
+        // Menampilkan Daftar Member (Urut Terbaru)
         dbPerpus.ref('anggota_perpus').on('value', snap => {
             const container = document.getElementById('listAnggota');
             container.innerHTML = "";
+            let members = [];
+            
             snap.forEach(sSnap => {
-                const s = sSnap.val();
+                members.push(sSnap.val());
+            });
+
+            // Balik urutan agar yang baru daftar ada di atas
+            members.reverse().forEach(s => {
                 container.innerHTML += `
-                    <div class="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex justify-between items-center mb-2">
-                        <div>
-                            <p class="text-[7px] font-black text-indigo-500 uppercase">ID: ${s.id}</p>
-                            <h3 class="font-black text-[11px] uppercase text-slate-800">${s.nama}</h3>
-                            <p class="text-[8px] font-bold text-slate-400">${s.kelas}</p>
+                    <div class="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex justify-between items-center animate-fade-in">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-emerald-100 text-emerald-600 w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs">
+                                ${s.kelas.substring(0,2)}
+                            </div>
+                            <div>
+                                <p class="text-[7px] font-black text-indigo-500 uppercase">ID: ${s.id}</p>
+                                <h3 class="font-black text-[11px] uppercase text-slate-800">${s.nama}</h3>
+                                <p class="text-[8px] font-bold text-slate-400">${s.kelas} • Terdaftar: ${s.tgl_daftar.split(' ')[0]}</p>
+                            </div>
                         </div>
-                        <button onclick="if(confirm('Hapus?')) dbPerpus.ref('anggota_perpus/${s.id}').remove()" class="text-red-400 p-2">🗑️</button>
+                        <button onclick="if(confirm('Hapus Member ini?')) dbPerpus.ref('anggota_perpus/${s.id}').remove()" class="bg-red-50 text-red-400 p-2 rounded-xl hover:bg-red-500 hover:text-white transition-all">🗑️</button>
                     </div>`;
             });
         });
