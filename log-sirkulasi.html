@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Log Sirkulasi - E-Perpus SDN 169</title>
+    <title>Log Sirkulasi - E-Perpus</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -14,17 +14,11 @@
 </head>
 <body class="bg-slate-50 min-h-screen pb-10">
 
-    <div id="otpOverlay" class="fixed inset-0 z-[100] bg-slate-900 flex items-center justify-center p-6">
-        <div class="bg-white p-8 rounded-[3rem] shadow-2xl max-w-sm w-full text-center border-b-8 border-indigo-600">
-            <div class="mb-6">
-                <span class="text-5xl">🔐</span>
-                <h2 class="text-xl font-black uppercase italic mt-4 text-slate-800">Akses Terkunci</h2>
-                <p class="text-[10px] font-bold text-slate-400 tracking-widest uppercase">Minta kode ke Pak Kiswanto</p>
-            </div>
-            <input type="number" id="inputOTP" placeholder="KODE OTP" class="w-full text-center text-3xl font-black tracking-[0.5em] p-4 bg-slate-100 rounded-3xl mb-4 outline-none focus:ring-4 ring-indigo-500/20 transition-all">
-            <button onclick="verifikasiOTP()" class="w-full bg-indigo-600 text-white font-black py-5 rounded-3xl shadow-lg hover:bg-indigo-700 transition-all uppercase italic text-xs tracking-widest">Buka Riwayat 🔓</button>
-        </div>
-    </div>
+    <script>
+        if (!sessionStorage.getItem("aksesEPerpus")) {
+            window.location.href = "index.html";
+        }
+    </script>
 
     <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-3 mb-6">
         <div class="max-w-6xl mx-auto flex justify-between items-center">
@@ -33,10 +27,10 @@
                 <span class="font-black text-indigo-900 italic text-sm tracking-tighter uppercase">E-Perpus</span>
             </a>
             <div class="flex gap-2 overflow-x-auto no-scrollbar ml-4">
-                <a href="sirkulasi.html" class="whitespace-nowrap px-3 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-indigo-50 transition-colors text-slate-600">🔄 Sirkulasi</a>
+                <a href="pinjaman.html" class="whitespace-nowrap px-3 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-indigo-50 transition-colors text-slate-600">🔄 Sirkulasi</a>
                 <a href="katalog.html" class="whitespace-nowrap px-3 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-orange-50 transition-colors text-slate-600">📖 Katalog</a>
                 <a href="daftar-anggota.html" class="whitespace-nowrap px-3 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-emerald-50 transition-colors text-slate-600">👤 Member</a>
-                <a href="log-sirkulasi.html" class="whitespace-nowrap px-3 py-2 rounded-xl text-[9px] font-black uppercase bg-slate-800 text-white shadow-sm">📜 Log</a>
+                <a href="log-sirkulasi.html" class="whitespace-nowrap px-3 py-2 rounded-xl text-[9px] font-black uppercase bg-slate-800 text-white shadow-sm shadow-slate-300">📜 Log</a>
             </div>
         </div>
     </nav>
@@ -45,15 +39,22 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div class="md:col-span-2 bg-indigo-600 text-white p-8 rounded-[2.5rem] shadow-xl border-b-8 border-indigo-800">
                 <h1 class="text-2xl font-black uppercase italic">Riwayat Sirkulasi 📜</h1>
-                <p class="text-[10px] font-bold opacity-80 uppercase tracking-widest mt-2">Data Peminjaman & Pengembalian Buku</p>
+                <p class="text-[10px] font-bold opacity-80 uppercase tracking-widest mt-2">Data Real-time Peminjaman & Pengembalian</p>
             </div>
-            <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-indigo-100 flex flex-col justify-center items-center">
-                <p class="text-[10px] font-black text-slate-400 uppercase">Buku Belum Kembali</p>
-                <h2 id="totalAktif" class="text-4xl font-black text-orange-500">0</h2>
+            <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border-2 border-orange-100 flex flex-col justify-center items-center">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Buku Masih Dipinjam</p>
+                <div class="flex items-baseline gap-2">
+                    <h2 id="totalAktif" class="text-5xl font-black text-orange-500">0</h2>
+                    <span class="text-xs font-bold text-slate-400">BUKU</span>
+                </div>
             </div>
         </div>
 
         <div class="bg-white rounded-[2.5rem] shadow-sm overflow-hidden border border-slate-200">
+            <div class="p-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                <h3 class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Aktivitas Terbaru</h3>
+                <button onclick="window.print()" class="text-[9px] font-black bg-white border border-slate-200 px-4 py-2 rounded-xl hover:bg-slate-50 transition-all uppercase">🖨️ Cetak Laporan</button>
+            </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead class="bg-slate-800 text-white text-[10px] uppercase font-black">
@@ -65,7 +66,7 @@
                             <th class="p-5 whitespace-nowrap tracking-widest">Waktu Kembali</th>
                         </tr>
                     </thead>
-                    <tbody id="tabelLog" class="text-[11px] font-bold text-slate-600">
+                    <tbody id="tabelLog" class="text-[11px] font-bold text-slate-600 italic">
                         </tbody>
                 </table>
             </div>
@@ -77,36 +78,7 @@
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        let kodeOTPBenar = "";
-
-        // 1. CEK SESI LOGIN
-        function cekAksesSesi() {
-            if (sessionStorage.getItem("aksesEPerpus")) {
-                document.getElementById('otpOverlay').classList.add('hidden');
-                loadDataLog();
-            }
-        }
-
-        // 2. AMBIL KODE OTP DARI FIREBASE (Agar Sinkron dengan Dashboard HP)
-        db.ref('admin_otp/otp').on('value', snap => {
-            if(snap.exists()) kodeOTPBenar = snap.val().toString();
-        });
-
-        // 3. VERIFIKASI OTP
-        function verifikasiOTP() {
-            const input = document.getElementById('inputOTP').value;
-            // Mendukung Kode Master 7384 untuk Pintu Darurat
-            if(input === kodeOTPBenar || input === "7384") {
-                sessionStorage.setItem("aksesEPerpus", "aktif");
-                document.getElementById('otpOverlay').classList.add('hidden');
-                loadDataLog();
-            } else {
-                alert("KODE OTP SALAH!");
-                document.getElementById('inputOTP').value = "";
-            }
-        }
-
-        // 4. MUAT DATA DARI FIREBASE
+        // LOAD DATA SECARA REALTIME
         function loadDataLog() {
             db.ref('perpus_laporan').on('value', snap => {
                 const tbody = document.getElementById('tabelLog');
@@ -116,47 +88,51 @@
                 let aktif = 0;
                 let rows = [];
 
+                if(!snap.exists()) {
+                    tbody.innerHTML = "<tr><td colspan='5' class='p-10 text-center text-slate-400 uppercase tracking-widest'>Belum Ada Transaksi</td></tr>";
+                    return;
+                }
+
                 snap.forEach(child => {
                     const d = child.val();
-                    
-                    // Hitung jumlah yang masih dipinjam
                     if(d.status === "DIPINJAM") aktif++;
                     
                     const statusKls = d.status === "DIPINJAM" 
-                        ? "bg-orange-100 text-orange-600 shadow-sm" 
-                        : "bg-emerald-100 text-emerald-600 shadow-sm";
+                        ? "bg-orange-100 text-orange-600 border border-orange-200" 
+                        : "bg-emerald-100 text-emerald-600 border border-emerald-200";
 
                     rows.push(`
-                        <tr class="border-b border-slate-50 hover:bg-indigo-50/30 transition-all">
-                            <td class="p-5 text-slate-500 font-medium whitespace-nowrap italic">
+                        <tr class="border-b border-slate-50 hover:bg-indigo-50/50 transition-all">
+                            <td class="p-5 text-slate-400 font-medium whitespace-nowrap">
                                 ${d.waktuPinjam || "-"}
                             </td>
                             <td class="p-5">
-                                <span class="block text-indigo-900 font-black uppercase tracking-tight">${d.namaSiswa}</span>
-                                <span class="text-[9px] text-slate-400 font-bold tracking-widest">${d.idSiswa}</span>
+                                <span class="block text-indigo-900 font-black uppercase leading-none mb-1">${d.namaSiswa}</span>
+                                <span class="text-[8px] text-slate-400 font-black tracking-widest uppercase">${d.idSiswa}</span>
                             </td>
-                            <td class="p-5 text-slate-800 uppercase font-black text-[10px] leading-tight max-w-[200px]">
+                            <td class="p-5 text-slate-700 uppercase font-black text-[10px] leading-tight">
                                 ${d.judulBuku}
                             </td>
                             <td class="p-5 text-center">
-                                <span class="px-3 py-1 rounded-full text-[9px] font-black italic ${statusKls}">
+                                <span class="px-3 py-1 rounded-full text-[8px] font-black ${statusKls}">
                                     ${d.status}
                                 </span>
                             </td>
-                            <td class="p-5 text-emerald-600 font-black italic whitespace-nowrap">
-                                ${d.waktuKembali || "-"}
+                            <td class="p-5 text-emerald-600 font-black whitespace-nowrap">
+                                ${d.waktuKembali || "<span class='text-slate-300 font-normal italic'>Belum Kembali</span>"}
                             </td>
                         </tr>
                     `);
                 });
 
-                // Tampilkan data terbaru di atas
+                // Urutan paling baru di paling atas
                 tbody.innerHTML = rows.reverse().join('');
                 counter.innerText = aktif;
             });
         }
 
-        window.onload = cekAksesSesi;
+        // Jalankan fungsi load data saat halaman siap
+        loadDataLog();
     </script>
 </body>
 </html>
