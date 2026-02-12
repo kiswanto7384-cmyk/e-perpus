@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <script>
-    // SATPAM OTP: Harus ditaruh paling atas agar dicek sebelum halaman muncul
+    // SATPAM OTP: Cek akses sebelum render konten
     if (!sessionStorage.getItem("aksesEPerpus")) {
         window.location.href = "index.html";
     }
@@ -11,78 +11,88 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Utama - E-Perpus</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .menu-card:active { transform: scale(0.95); }
+        .bg-pattern {
+            background-color: #1e1b4b;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3 Jacques %3Cg fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M92.5 40a35 35 0 1 1 0 20 35 35 0 0 1 0-20zM90 50a32.5 32.5 0 1 0-65 0 32.5 32.5 0 0 0 65 0z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+    </style>
 </head>
 <body class="bg-slate-50 min-h-screen font-sans antialiased text-slate-900">
     
-    <header class="bg-indigo-900 text-white pt-12 pb-24 px-6 rounded-b-[3rem] shadow-2xl relative overflow-hidden">
-        <div class="absolute top-0 right-0 opacity-10 text-[150px] rotate-12 italic font-black text-white pointer-events-none">LIB</div>
+    <header class="bg-pattern text-white pt-14 pb-28 px-6 rounded-b-[3.5rem] shadow-2xl relative overflow-hidden">
         <div class="max-w-xl mx-auto flex justify-between items-center relative z-10">
             <div>
-                <p class="text-indigo-200 text-xs font-bold uppercase tracking-widest mb-1">Administrator,</p>
-                <h1 class="text-2xl font-black italic tracking-tight uppercase text-yellow-400">Dashboard Perpus 📚</h1>
+                <p class="text-indigo-200 text-[10px] font-black uppercase tracking-[0.3em] mb-1">Perpustakaan Digital</p>
+                <h1 class="text-3xl font-black italic tracking-tighter uppercase text-yellow-400 leading-none">E-Perpus <span class="text-white">Pro</span></h1>
             </div>
-            <div class="h-12 w-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl border border-white/30 shadow-inner">👤</div>
+            <div class="h-14 w-14 bg-white/10 rounded-2xl flex items-center justify-center text-2xl border border-white/20 backdrop-blur-md shadow-inner">📚</div>
         </div>
     </header>
 
-    <main class="max-w-xl mx-auto px-6 -mt-16 relative z-20 pb-10">
-        <div class="grid grid-cols-2 gap-4">
-            <a href="pinjaman.html" class="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center text-center hover:scale-95 hover:bg-blue-50 transition-all group">
-                <div class="h-16 w-16 bg-blue-50 group-hover:bg-blue-600 group-hover:text-white text-blue-600 rounded-3xl flex items-center justify-center text-3xl mb-4 transition-colors shadow-sm">➕</div>
-                <h3 class="font-black uppercase italic text-[11px]">Pinjam Buku</h3>
-                <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase leading-tight text-center">Scan Kartu<br>E-Kantin</p>
+    <main class="max-w-xl mx-auto px-6 -mt-20 relative z-20 pb-12">
+        <div class="grid grid-cols-2 gap-5">
+            
+            <a href="pinjaman.html" class="menu-card bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center text-center transition-all group">
+                <div class="h-16 w-16 bg-blue-50 group-hover:bg-blue-600 group-hover:text-white text-blue-600 rounded-3xl flex items-center justify-center text-3xl mb-4 transition-all shadow-sm">➕</div>
+                <h3 class="font-black uppercase italic text-[11px] text-slate-800">Pinjam Buku</h3>
+                <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase leading-tight">Transaksi Baru &<br>Scan Barcode</p>
             </a>
 
-            <a href="pengembalian.html" class="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center text-center hover:scale-95 hover:bg-emerald-50 transition-all group">
-                <div class="h-16 w-16 bg-emerald-50 group-hover:bg-emerald-600 group-hover:text-white text-emerald-600 rounded-3xl flex items-center justify-center text-3xl mb-4 transition-colors shadow-sm">✅</div>
-                <h3 class="font-black uppercase italic text-[11px]">Pengembalian</h3>
-                <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase leading-tight text-center">Denda &<br>Potong Saldo</p>
+            <a href="pengembalian.html" class="menu-card bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center text-center transition-all group">
+                <div class="h-16 w-16 bg-emerald-50 group-hover:bg-emerald-600 group-hover:text-white text-emerald-600 rounded-3xl flex items-center justify-center text-3xl mb-4 transition-all shadow-sm">✅</div>
+                <h3 class="font-black uppercase italic text-[11px] text-slate-800">Pengembalian</h3>
+                <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase leading-tight">Update Stok &<br>Cek Denda</p>
             </a>
 
-            <a href="katalog.html" class="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center text-center hover:scale-95 hover:bg-orange-50 transition-all group">
-                <div class="h-16 w-16 bg-orange-50 group-hover:bg-orange-600 group-hover:text-white text-orange-600 rounded-3xl flex items-center justify-center text-3xl mb-4 transition-colors shadow-sm">📖</div>
-                <h3 class="font-black uppercase italic text-[11px]">Katalog Buku</h3>
-                <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase text-center">Manajemen<br>Stok Buku</p>
+            <a href="katalog.html" class="menu-card bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center text-center transition-all group">
+                <div class="h-16 w-16 bg-orange-50 group-hover:bg-orange-600 group-hover:text-white text-orange-600 rounded-3xl flex items-center justify-center text-3xl mb-4 transition-all shadow-sm">📖</div>
+                <h3 class="font-black uppercase italic text-[11px] text-slate-800">Katalog Buku</h3>
+                <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase leading-tight">Manajemen Stok<br>& Judul</p>
             </a>
 
-            <a href="daftar-anggota.html" class="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center text-center hover:scale-95 hover:bg-indigo-50 transition-all group">
-                <div class="h-16 w-16 bg-indigo-50 group-hover:bg-indigo-600 group-hover:text-white text-indigo-600 rounded-3xl flex items-center justify-center text-3xl mb-4 transition-colors shadow-sm">👥</div>
-                <h3 class="font-black uppercase italic text-[11px]">Data Anggota</h3>
-                <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase text-center">Database<br>Member Siswa</p>
+            <a href="daftar-anggota.html" class="menu-card bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center text-center transition-all group">
+                <div class="h-16 w-16 bg-indigo-50 group-hover:bg-indigo-600 group-hover:text-white text-indigo-600 rounded-3xl flex items-center justify-center text-3xl mb-4 transition-all shadow-sm">👥</div>
+                <h3 class="font-black uppercase italic text-[11px] text-slate-800">Data Anggota</h3>
+                <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase leading-tight">Registrasi &<br>Aktivasi Kartu</p>
             </a>
         </div>
 
-        <div class="mt-6 space-y-3">
+        <div class="mt-8 space-y-4">
+            <h2 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-4">Laporan & Audit</h2>
+            
             <a href="log-sirkulasi.html" class="bg-slate-900 text-white p-5 rounded-[2.5rem] flex items-center gap-4 border-b-4 border-slate-700 hover:bg-slate-800 transition-all shadow-lg group">
                 <div class="h-12 w-12 bg-white/10 group-hover:bg-yellow-500 group-hover:text-slate-900 rounded-2xl flex items-center justify-center text-xl text-yellow-500 transition-all shadow-inner">📜</div>
                 <div class="flex-1">
                     <h3 class="font-black uppercase italic text-[11px]">Log Sirkulasi</h3>
-                    <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">Riwayat Lengkap Pinjam Kembali</p>
+                    <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">Riwayat Lengkap Peminjaman</p>
                 </div>
-                <div class="text-xs opacity-30 group-hover:opacity-100 transition-opacity">➔</div>
+                <div class="text-xs opacity-30 group-hover:opacity-100 transition-opacity pr-2">➔</div>
             </a>
 
             <a href="admin-cek-log.html" class="bg-white p-5 rounded-[2.5rem] flex items-center gap-4 border-2 border-slate-100 hover:border-indigo-300 transition-all shadow-md group">
                 <div class="h-12 w-12 bg-slate-100 text-slate-600 group-hover:bg-indigo-600 group-hover:text-white rounded-2xl flex items-center justify-center text-xl shadow-inner transition-all">🕵️</div>
                 <div class="flex-1">
-                    <h3 class="font-black uppercase italic text-[11px] text-slate-700">Monitoring Guru</h3>
-                    <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">Cek OTP & Audit Log Login</p>
+                    <h3 class="font-black uppercase italic text-[11px] text-slate-700">Audit Keamanan</h3>
+                    <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">Pantau Akses & Kode OTP</p>
                 </div>
                 <div class="text-xs text-slate-300">➔</div>
             </a>
         </div>
 
-        <div class="mt-10 text-center">
-            <button onclick="keluarSistem()" class="text-[10px] font-black text-red-400 uppercase tracking-[0.2em] italic hover:text-red-600 transition-colors">
-                🔒 Keluar & Kunci Akses
+        <div class="mt-12 text-center">
+            <button onclick="keluarSistem()" class="group inline-flex flex-col items-center">
+                <div class="h-12 w-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-2 group-hover:bg-red-500 group-hover:text-white transition-all shadow-sm">🔒</div>
+                <span class="text-[10px] font-black text-red-400 uppercase tracking-[0.2em] italic">Logout & Lock Dashboard</span>
             </button>
-            <p class="mt-4 text-[9px] font-black text-slate-300 uppercase tracking-[0.3em]">E-Perpus Indonesia Hebat v2.0</p>
+            <p class="mt-8 text-[8px] font-black text-slate-300 uppercase tracking-[0.4em]">E-Perpus Indonesia Hebat v2.5</p>
         </div>
     </main>
 
     <script>
         function keluarSistem() {
-            if(confirm("Apakah Anda yakin ingin mengunci dashboard ini?")) {
+            if(confirm("Apakah Anda yakin ingin mengunci dashboard dan keluar?")) {
                 sessionStorage.removeItem("aksesEPerpus");
                 window.location.href = "index.html";
             }
