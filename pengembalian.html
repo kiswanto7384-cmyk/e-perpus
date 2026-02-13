@@ -10,11 +10,11 @@
 </head>
 <body class="bg-slate-100 min-h-screen p-4 font-sans text-slate-800">
 
-    <div class="max-w-5xl mx-auto">
+    <div class="max-w-6xl mx-auto">
         <div class="bg-indigo-700 p-6 rounded-[2rem] text-white shadow-lg mb-6 flex justify-between items-center border-b-8 border-indigo-900">
             <div>
                 <h1 class="text-2xl font-black italic uppercase tracking-tighter text-yellow-400">Pengembalian Buku 📥</h1>
-                <p class="text-[10px] font-bold opacity-80 uppercase tracking-widest">Pencatatan Tanggal & Saldo Otomatis</p>
+                <p class="text-[10px] font-bold opacity-80 uppercase tracking-widest">Integrasi Saldo E-Kantin Otomatis</p>
             </div>
             <div class="text-right bg-indigo-800 p-3 rounded-2xl border border-indigo-600">
                 <p class="text-[9px] font-black opacity-60 uppercase">Tarif Denda</p>
@@ -28,14 +28,15 @@
                     <span class="text-xl">📚</span>
                     <h2 class="font-black uppercase italic text-slate-600 text-sm">Daftar Pinjaman Aktif</h2>
                 </div>
-                <span id="totalPinjaman" class="bg-indigo-600 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase">0 PINJAMAN</span>
+                <span id="totalPinjaman" class="bg-indigo-100 text-indigo-700 px-4 py-1.5 rounded-full text-[10px] font-black uppercase">Memuat...</span>
             </div>
             
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-slate-50 text-[9px] font-black uppercase text-slate-400 tracking-widest border-b">
-                            <th class="p-5">Siswa & Buku</th>
+                            <th class="p-5">ID Siswa</th>
+                            <th class="p-5">Nama & Judul Buku</th>
                             <th class="p-5 text-center">Tgl Pinjam</th>
                             <th class="p-5 text-center text-indigo-600">Tgl Kembali</th>
                             <th class="p-5 text-center text-red-500">Denda</th>
@@ -43,26 +44,20 @@
                         </tr>
                     </thead>
                     <tbody id="tabelPinjaman" class="text-[11px] font-bold text-slate-600">
-                        </tbody>
+                    </tbody>
                 </table>
             </div>
         </div>
 
-        <div class="mt-8 flex justify-center gap-8">
-            <a href="menu-perpus.html" class="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-indigo-600 transition-all">
-                <span>🏠</span> Dashboard Utama
-            </a>
+        <div class="mt-6 text-center">
+            <a href="menu-perpus.html" class="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-indigo-600"> Kembali ke Dashboard 🏠</a>
         </div>
     </div>
 
     <script>
-        // Konfigurasi Database Bapak
         const firebaseConfig = { databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app" };
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-
-        const DENDA_PER_HARI = 1000;
-        const BATAS_HARI = 7;
 
         function muatData() {
             db.ref('perpus_laporan').on('value', snap => {
@@ -71,11 +66,6 @@
                 body.innerHTML = "";
                 let count = 0;
 
-                if (!snap.exists()) {
-                    body.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-slate-300 italic">Belum ada data pinjaman.</td></tr>`;
-                    return;
-                }
-
                 snap.forEach(child => {
                     const p = child.val();
                     const key = child.key;
@@ -83,46 +73,38 @@
                     if (p.status === "DIPINJAM") {
                         count++;
                         
-                        // PERBAIKAN LOGIKA TANGGAL PINJAM
-                        // Mengambil dari key 'tanggal' atau 'tgl_pinjam' atau 'timestamp'
-                        let tglPinjamMentah = p.tanggal || p.tgl_pinjam || p.timestamp || "-";
-                        let tglPinjamBersih = tglPinjamMentah;
+                        // PERBAIKAN: Konversi Angka Timestamp ke Tanggal (Sesuai Foto Firebase Bapak)
+                        let tglPinjamTampil = "-";
+                        let denda = 0;
                         
-                        // Jika formatnya ISO/Date, kita rapikan. Jika teks biasa, tampilkan apa adanya.
-                        if (tglPinjamMentah.includes("-") || tglPinjamMentah.includes("T")) {
-                            const d = new Date(tglPinjamMentah);
-                            if(!isNaN(d)) tglPinjamBersih = d.toLocaleDateString('id-ID', { day:'2-digit', month:'short' });
-                        } else {
-                            tglPinjamBersih = tglPinjamMentah.split(',')[0];
+                        if (p.timestamp) {
+                            const d = new Date(p.timestamp);
+                            tglPinjamTampil = d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+                            
+                            // Hitung Denda (Batas 7 Hari)
+                            const selisihHari = Math.floor((new Date() - d) / (1000 * 60 * 60 * 24));
+                            if (selisihHari > 7) denda = (selisihHari - 7) * 1000;
                         }
 
-                        // Hitung Denda
-                        const dateObj = new Date(p.timestamp || p.tanggal || new Date());
-                        const selisihHari = Math.floor((new Date() - dateObj) / (1000 * 60 * 60 * 24));
-                        let denda = (selisihHari > BATAS_HARI) ? (selisihHari - BATAS_HARI) * DENDA_PER_HARI : 0;
-
-                        // Tgl Kembali (Default untuk yang belum kembali)
-                        let tglKembaliTampil = p.tgl_kembali || "<span class='text-slate-300 italic font-normal'>Belum Kembali</span>";
+                        let tglKembaliTampil = p.tgl_kembali || "<span class='text-slate-300 italic'>Belum Kembali</span>";
 
                         body.innerHTML += `
-                            <tr class="border-b border-slate-50 hover:bg-indigo-50/20 transition-all">
+                            <tr class="border-b border-slate-50 hover:bg-indigo-50/30 transition-all">
+                                <td class="p-5 font-black text-slate-400">#${p.idSiswa || '-'}</td>
                                 <td class="p-5">
-                                    <p class="font-black text-indigo-900 uppercase">${p.namaSiswa}</p>
-                                    <p class="text-[9px] font-bold text-slate-400 uppercase italic">${p.judulBuku}</p>
+                                    <p class="font-black text-indigo-900 uppercase">${p.namaSiswa || 'Tanpa Nama'}</p>
+                                    <p class="text-[10px] font-bold text-slate-400 italic">${p.judulBuku || 'Tanpa Judul'}</p>
                                 </td>
-                                <td class="p-5 text-center text-slate-500 font-bold">${tglPinjamBersih}</td>
+                                <td class="p-5 text-center text-slate-500 font-bold">${tglPinjamTampil}</td>
                                 <td class="p-5 text-center text-indigo-600 font-black">${tglKembaliTampil}</td>
-                                <td class="p-5 text-center">
-                                    <span class="${denda > 0 ? 'text-red-600' : 'text-emerald-600'} font-black">Rp ${denda.toLocaleString()}</span>
-                                </td>
+                                <td class="p-5 text-center text-red-600 font-black">Rp ${denda.toLocaleString()}</td>
                                 <td class="p-5 text-center">
                                     <button onclick="prosesKembali('${key}', '${p.idSiswa}', '${p.idBuku}', ${denda})" 
-                                        class="bg-emerald-500 text-white px-4 py-2 rounded-xl font-black uppercase text-[9px] shadow-md hover:bg-emerald-600">
+                                        class="bg-emerald-500 text-white px-4 py-2 rounded-2xl font-black uppercase text-[9px] shadow-md">
                                         Selesai ✅
                                     </button>
                                 </td>
-                            </tr>
-                        `;
+                            </tr>`;
                     }
                 });
                 countEl.innerText = count + " PINJAMAN AKTIF";
@@ -130,25 +112,22 @@
         }
 
         async function prosesKembali(key, idSiswa, idBuku, denda) {
-            const hariIni = new Date().toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
+            const tglSkrg = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
             if (!confirm("Konfirmasi pengembalian buku?")) return;
 
             try {
-                // 1. Catat Tanggal Kembali & Update Status
+                // Update ke perpus_laporan: status dan tgl_kembali
                 await db.ref('perpus_laporan/' + key).update({
                     status: "DIKEMBALIKAN",
-                    tgl_kembali: hariIni,
+                    tgl_kembali: tglSkrg,
                     denda_final: denda
                 });
 
-                // 2. Tambah Stok Buku (+1)
-                await db.ref('koleksi_buku/' + idBuku).transaction(c => {
-                    if (c) c.stok_tersedia = (c.stok_tersedia || 0) + 1;
-                    return c;
-                });
+                // Tambah Stok Buku (+1)
+                await db.ref('koleksi_buku/' + idBuku).transaction(c => { if (c) c.stok_tersedia++; return c; });
 
-                alert("Berhasil! Tanggal kembali tercatat: " + hariIni);
-            } catch (e) { alert("Terjadi kesalahan."); }
+                alert("Berhasil! Tanggal kembali tercatat: " + tglSkrg);
+            } catch (e) { alert("Gagal proses."); }
         }
 
         muatData();
