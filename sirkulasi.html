@@ -11,26 +11,20 @@
 </head>
 <body class="bg-slate-50 min-h-screen pb-10">
 
-    <script>
-        if (!sessionStorage.getItem("aksesEPerpus")) {
-            window.location.href = "index.html";
-        }
-    </script>
-
     <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-3 mb-6">
         <div class="max-w-4xl mx-auto flex justify-between items-center">
             <a href="menu-perpus.html" class="flex items-center gap-2">
                 <span class="text-xl">🏠</span>
                 <span class="font-black text-indigo-900 italic text-sm uppercase">Menu Utama</span>
             </a>
-            <a href="log-sirkulasi.html" class="px-3 py-2 rounded-xl text-[9px] font-black uppercase bg-slate-100 text-slate-600 shadow-sm hover:bg-slate-200">📜 Riwayat</a>
+            <a href="pengembalian.html" class="px-3 py-2 rounded-xl text-[9px] font-black uppercase bg-indigo-100 text-indigo-600 shadow-sm hover:bg-indigo-200">📑 Log Pengembalian</a>
         </div>
     </nav>
 
     <div class="max-w-2xl mx-auto px-4">
         <div class="bg-indigo-600 text-white p-6 rounded-[2.5rem] shadow-xl mb-6 border-b-8 border-indigo-800">
             <h1 class="text-xl font-black uppercase italic leading-none text-yellow-400">Kasir Sirkulasi 🔄</h1>
-            <p class="text-[9px] font-bold opacity-80 uppercase tracking-widest mt-2 text-white">Sistem Scan Otomatis SDN 169</p>
+            <p class="text-[9px] font-bold opacity-80 uppercase tracking-widest mt-2">Update Otomatis & Hitung Denda</p>
         </div>
 
         <div id="scannerArea" class="hidden mb-6 rounded-[2.5rem] overflow-hidden border-4 border-indigo-500 bg-black relative shadow-2xl">
@@ -44,10 +38,10 @@
                 <label class="text-[8px] font-black text-slate-400 ml-3 uppercase">1. Identitas Peminjam</label>
                 <input type="text" id="nisSiswa" placeholder="ID SISWA / SCAN..." 
                     class="w-full p-5 bg-slate-50 rounded-2xl font-black outline-none border-2 border-transparent focus:border-indigo-500 uppercase text-sm tracking-widest transition-all">
-                <button onclick="bukaScanner('nisSiswa')" class="absolute right-2 top-[22px] bottom-2 bg-indigo-600 text-white px-4 rounded-xl font-black text-[10px] hover:bg-indigo-700">📷 SCAN</button>
+                <button onclick="bukaScanner('nisSiswa')" class="absolute right-2 top-[22px] bottom-2 bg-indigo-600 text-white px-4 rounded-xl font-black text-[10px] hover:bg-indigo-700 transition-all">📷 SCAN</button>
             </div>
 
-            <div id="infoSiswa" class="hidden p-5 bg-blue-50 rounded-2xl border-2 border-blue-100 animate-pulse">
+            <div id="infoSiswa" class="hidden p-5 bg-blue-50 rounded-2xl border-2 border-blue-100">
                 <div class="flex items-center gap-4">
                     <div class="text-3xl">👤</div>
                     <div>
@@ -63,10 +57,10 @@
                 <label class="text-[8px] font-black text-slate-400 ml-3 uppercase">2. Barcode Buku</label>
                 <input type="text" id="barcodeBuku" placeholder="KODE BUKU / SCAN..." 
                     class="w-full p-5 bg-slate-50 rounded-2xl font-black outline-none border-2 border-transparent focus:border-orange-500 uppercase text-sm tracking-widest transition-all">
-                <button onclick="bukaScanner('barcodeBuku')" class="absolute right-2 top-[22px] bottom-2 bg-orange-500 text-white px-4 rounded-xl font-black text-[10px] hover:bg-orange-600">📷 SCAN</button>
+                <button onclick="bukaScanner('barcodeBuku')" class="absolute right-2 top-[22px] bottom-2 bg-orange-500 text-white px-4 rounded-xl font-black text-[10px] hover:bg-orange-600 transition-all">📷 SCAN</button>
             </div>
 
-            <div id="infoBuku" class="hidden p-5 bg-orange-50 rounded-2xl border-2 border-orange-100 animate-pulse">
+            <div id="infoBuku" class="hidden p-5 bg-orange-50 rounded-2xl border-2 border-orange-100">
                 <div class="flex items-center gap-4">
                     <div class="text-3xl">📖</div>
                     <div>
@@ -84,12 +78,14 @@
     </div>
 
     <script>
+        // FIREBASE CONFIG
         const firebaseConfig = { databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app" };
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
         let html5QrCode = null;
 
+        // Listener Input Manual
         document.getElementById('nisSiswa').addEventListener('input', (e) => cariSiswa(e.target.value.trim()));
         document.getElementById('barcodeBuku').addEventListener('input', (e) => cariBuku(e.target.value.trim()));
 
@@ -107,7 +103,7 @@
                     tutupScanner();
                     new Audio('https://www.soundjay.com/buttons/beep-07.mp3').play();
                 }
-            ).catch(err => alert("Kamera Error: " + err));
+            ).catch(err => console.error("Scanner Error: ", err));
         }
 
         function tutupScanner() {
@@ -119,15 +115,13 @@
         }
 
         function cariSiswa(nis) {
-            if(!nis || nis.length < 3) return;
+            if(!nis) return;
             db.ref('anggota_perpus/' + nis).once('value', snap => {
                 if(snap.exists()){
                     const s = snap.val();
                     document.getElementById('infoSiswa').classList.remove('hidden');
                     document.getElementById('namaSiswaDisplay').innerText = s.nama;
                     document.getElementById('kelasSiswaDisplay').innerText = "Kelas: " + s.kelas;
-                } else {
-                    document.getElementById('infoSiswa').classList.add('hidden');
                 }
             });
         }
@@ -139,55 +133,98 @@
                     const b = snap.val();
                     document.getElementById('infoBuku').classList.remove('hidden');
                     document.getElementById('judulBukuDisplay').innerText = b.judul;
-                    document.getElementById('stokBukuDisplay').innerText = "Tersedia: " + b.stok_tersedia + " Buku";
-                } else {
-                    document.getElementById('infoBuku').classList.add('hidden');
+                    document.getElementById('stokBukuDisplay').innerText = "Tersedia: " + b.stok_tersedia;
                 }
             });
         }
 
-        // --- BAGIAN YANG DISISIPKAN PERBAIKAN WAKTU ---
-        function prosesTransaksi(tipe) {
+        async function prosesTransaksi(tipe) {
             const nis = document.getElementById('nisSiswa').value;
             const barcode = document.getElementById('barcodeBuku').value;
             const nama = document.getElementById('namaSiswaDisplay').innerText;
             const judul = document.getElementById('judulBukuDisplay').innerText;
             
-            if(!nis || !nama) return alert("❌ Siswa belum discan!");
-            if(!barcode || !judul) return alert("❌ Buku belum discan!");
+            if(!nis || !barcode) return alert("❌ NIS atau Barcode belum terisi!");
 
-            db.ref('koleksi_buku/' + barcode).once('value', snap => {
-                const buku = snap.val();
-                const stokSkrg = parseInt(buku.stok_tersedia);
-                
-                if(tipe === 'PINJAM' && stokSkrg <= 0) return alert("❌ Stok buku habis!");
+            const tglSkrg = new Date().toLocaleString('id-ID');
+            const tsSkrg = new Date().getTime();
+            const BATAS_HARI = 7;
+            const DENDA_PER_HARI = 1000;
 
-                const tglSkrg = new Date().toLocaleString('id-ID');
-                
-                // Data disesuaikan agar Riwayat tidak "undefined"
-                const dataLaporan = {
+            if (tipe === 'PINJAM') {
+                // LOGIKA PINJAM
+                const dataBaru = {
                     idSiswa: nis,
                     namaSiswa: nama,
+                    idBuku: barcode,
                     judulBuku: judul,
-                    status: tipe === 'PINJAM' ? "DIPINJAM" : "DIKEMBALIKAN"
+                    status: "DIPINJAM",
+                    waktuPinjam: tglSkrg,
+                    waktuKembali: "-",
+                    timestamp: tsSkrg
                 };
-
-                if(tipe === 'PINJAM') {
-                    dataLaporan.waktuPinjam = tglSkrg;
-                    dataLaporan.waktuKembali = "-";
-                } else {
-                    dataLaporan.waktuPinjam = "-";
-                    dataLaporan.waktuKembali = tglSkrg;
-                }
-
-                db.ref('perpus_laporan').push(dataLaporan);
-
-                const stokBaru = tipe === 'PINJAM' ? (stokSkrg - 1) : (stokSkrg + 1);
-                db.ref('koleksi_buku/' + barcode).update({ stok_tersedia: stokBaru });
-                
-                alert("✅ BERHASIL!\nSiswa: " + nama + "\nStatus: " + tipe);
+                await db.ref('perpus_laporan').push(dataBaru);
+                await updateStok(barcode, -1);
+                alert("✅ BERHASIL PINJAM!");
                 location.reload();
+
+            } else {
+                // LOGIKA KEMBALI (SINKRON KE PENGEMBALIAN)
+                db.ref('perpus_laporan').orderByChild('idSiswa').equalTo(nis).once('value', async (snap) => {
+                    let ditemukan = false;
+                    let targetKey = null;
+                    let dendaHitung = 0;
+
+                    snap.forEach(child => {
+                        const data = child.val();
+                        if (data.idBuku === barcode && data.status === "DIPINJAM") {
+                            ditemukan = true;
+                            targetKey = child.key;
+
+                            // Hitung Denda Otomatis
+                            const selisihHari = Math.floor((tsSkrg - data.timestamp) / (1000 * 60 * 60 * 24));
+                            if (selisihHari > BATAS_HARI) {
+                                dendaHitung = (selisihHari - BATAS_HARI) * DENDA_PER_HARI;
+                            }
+                        }
+                    });
+
+                    if (ditemukan) {
+                        // 1. Update data agar muncul di halaman pengembalian
+                        await db.ref('perpus_laporan/' + targetKey).update({
+                            status: "DIKEMBALIKAN",
+                            waktuKembali: tglSkrg,
+                            denda_final: dendaHitung,
+                            waktu_proses: tsSkrg
+                        });
+
+                        // 2. Update Stok & Saldo
+                        await updateStok(barcode, 1);
+                        if(dendaHitung > 0) await updateSaldo(nis, dendaHitung);
+
+                        alert(`✅ BERHASIL KEMBALI!\nDenda: Rp ${dendaHitung.toLocaleString()}`);
+                        location.reload();
+                    } else {
+                        alert("❌ Data peminjaman aktif tidak ditemukan!");
+                    }
+                });
+            }
+        }
+
+        async function updateStok(id, qty) {
+            await db.ref('koleksi_buku/' + id).transaction(c => {
+                if(c) c.stok_tersedia = (parseInt(c.stok_tersedia) || 0) + qty;
+                return c;
             });
+        }
+
+        async function updateSaldo(nis, denda) {
+            const ref = db.ref('anggota_perpus/' + nis);
+            const s = await ref.once('value');
+            if(s.exists()){
+                const lama = s.val().saldo || 0;
+                await ref.update({ saldo: lama - denda });
+            }
         }
     </script>
 </body>
