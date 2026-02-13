@@ -25,14 +25,14 @@
         
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <div class="bg-white p-6 rounded-[2.5rem] shadow-xl border-t-8 border-indigo-500">
-                <h2 class="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest italic text-center text-slate-400">Scan Kartu Siswa</h2>
+                <h2 class="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest italic text-center">Scan Kartu Siswa</h2>
                 <div id="reader" class="rounded-3xl overflow-hidden border-4 border-slate-100 shadow-inner"></div>
             </div>
 
-            <div class="bg-white p-6 rounded-[2.5rem] shadow-xl border-t-8 border-yellow-400 flex flex-col justify-center">
+            <div class="bg-white p-6 rounded-[2.5rem] shadow-xl border-t-8 border-yellow-400 flex flex-col justify-center text-center">
                 <h2 class="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest italic">Konfirmasi Identitas</h2>
-                <div class="bg-slate-50 p-6 rounded-[2rem] border-2 border-dashed border-slate-200 text-center mb-4">
-                    <p id="infoStatus" class="text-[9px] font-black text-slate-300 uppercase tracking-widest">Menunggu Input Scan...</p>
+                <div class="bg-slate-50 p-6 rounded-[2rem] border-2 border-dashed border-slate-200 mb-4">
+                    <p id="infoStatus" class="text-[9px] font-black text-slate-300 uppercase tracking-widest">Menunggu Scan...</p>
                     <h3 id="displayNama" class="text-2xl font-black text-indigo-900 uppercase mt-2 italic">- Belum Ada Data -</h3>
                     <p id="displayKelas" class="text-sm font-bold text-emerald-600 mt-1">-</p>
                 </div>
@@ -41,7 +41,7 @@
                 <input type="hidden" id="nama">
                 <input type="hidden" id="kelas">
                 
-                <button onclick="simpanAnggota()" id="btnSimpan" disabled class="w-full bg-slate-200 text-slate-400 py-5 rounded-2xl font-black uppercase italic shadow-lg cursor-not-allowed transition-all">AKTIFKAN KEANGGOTAAN ✅</button>
+                <button onclick="simpanAnggota()" id="btnSimpan" disabled class="w-full bg-slate-200 text-slate-400 py-5 rounded-2xl font-black uppercase italic shadow-lg cursor-not-allowed">AKTIFKAN KEANGGOTAAN ✅</button>
             </div>
         </div>
 
@@ -49,7 +49,7 @@
             <div class="p-6 border-b border-slate-50 flex justify-between items-center bg-indigo-50/30">
                 <div>
                     <h3 class="font-black uppercase italic text-xs text-indigo-900">Daftar Anggota Perpus</h3>
-                    <p class="text-[8px] font-bold text-indigo-400 uppercase tracking-widest">Siswa yang sudah bisa meminjam buku</p>
+                    <p class="text-[8px] font-bold text-indigo-400 uppercase tracking-widest">Ditarik dari tabel: anggota_perpus</p>
                 </div>
                 <div id="jumlahAnggota" class="bg-indigo-600 text-white px-4 py-1 rounded-full font-black text-[10px]">0</div>
             </div>
@@ -62,99 +62,87 @@
                             <th class="p-5 text-center">Opsi</th>
                         </tr>
                     </thead>
-                    <tbody id="tabelAnggota" class="text-xs font-bold text-slate-600">
-                        </tbody>
+                    <tbody id="tabelAnggota" class="text-xs font-bold text-slate-600"></tbody>
                 </table>
             </div>
         </div>
     </main>
 
     <script>
+        // KONFIGURASI DISESUAIKAN DENGAN GAMBAR FIREBASE BAPAK
         const firebaseConfig = {
-            apiKey: "AIzaSyCUjE8WXa8Py4vnojrXDUR3uCvnQEzP6zQ",
-            authDomain: "e-kantin-91f0c.firebaseapp.com",
-            databaseURL: "https://e-kantin-91f0c-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "e-kantin-91f0c",
-            storageBucket: "e-kantin-91f0c.firebasestorage.app",
-            messagingSenderId: "981834126006",
-            appId: "1:981834126006:web:dac8bb0ec1da90549b4c17"
+            databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app"
         };
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        // 1. SCANNER
         let scanner = new Html5Qrcode("reader");
         scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (id) => {
-            cariDataDiKantin(id.trim());
+            cariDataSiswa(id.trim());
         }).catch(err => console.error(err));
 
-        function cariDataDiKantin(id) {
-            // Kita tarik data dari 'kantin_users' agar tidak perlu ketik nama
+        // 2. CARI DATA (TETAP KE KANTIN_USERS JIKA TERHUBUNG)
+        function cariDataSiswa(id) {
             db.ref('kantin_users/' + id).once('value', snap => {
                 const user = snap.val();
                 const btn = document.getElementById('btnSimpan');
-                
                 if(user) {
-                    document.getElementById('infoStatus').innerText = "SISWA DITEMUKAN!";
+                    document.getElementById('infoStatus').innerText = "DATA DITEMUKAN!";
                     document.getElementById('displayNama').innerText = user.nama;
                     document.getElementById('displayKelas').innerText = "KELAS " + (user.kelas || '-');
                     document.getElementById('nisn').value = id;
                     document.getElementById('nama').value = user.nama;
                     document.getElementById('kelas').value = user.kelas || '-';
-                    
                     btn.disabled = false;
-                    btn.className = "w-full bg-emerald-500 text-white py-5 rounded-2xl font-black uppercase italic shadow-lg shadow-emerald-100 animate-bounce";
+                    btn.className = "w-full bg-emerald-500 text-white py-5 rounded-2xl font-black uppercase italic shadow-lg shadow-emerald-100";
                 } else {
-                    alert("Maaf, NISN ini belum terdaftar di E-Kantin SDN 169!");
+                    alert("ID tidak terdaftar di database!");
                 }
             });
         }
 
+        // 3. SIMPAN KE TABEL anggota_perpus
         function simpanAnggota() {
             const nisn = document.getElementById('nisn').value;
-            const nama = document.getElementById('nama').value;
-            const kelas = document.getElementById('kelas').value;
-
-            // Masukkan ke tabel 'perpus_anggota'
-            db.ref('perpus_anggota/' + nisn).set({
-                nama: nama,
-                kelas: kelas,
-                tgl_aktivasi: new Date().toLocaleDateString('id-ID')
+            db.ref('anggota_perpus/' + nisn).set({
+                nama: document.getElementById('nama').value,
+                kelas: document.getElementById('kelas').value,
+                tgl_daftar: new Date().toLocaleDateString('id-ID')
             }).then(() => {
-                alert("BERHASIL! " + nama + " resmi jadi anggota perpustakaan.");
+                alert("Berhasil Diaktifkan!");
                 location.reload();
             });
         }
 
-        // TAMPILKAN DAFTAR ANGGOTA YANG SUDAH TERSIMPAN (DATABASE PERPUS)
-        db.ref('perpus_anggota').on('value', snap => {
+        // 4. TAMPILKAN DAFTAR (PULIHKAN DATA DARI anggota_perpus)
+        db.ref('anggota_perpus').on('value', snap => {
             const tbody = document.getElementById('tabelAnggota');
             const counter = document.getElementById('jumlahAnggota');
             tbody.innerHTML = "";
             let count = 0;
             
-            snap.forEach(s => {
-                count++;
-                const a = s.val();
-                tbody.innerHTML += `
-                    <tr class="border-t border-slate-50 hover:bg-indigo-50 transition-all">
-                        <td class="p-5">
-                            <span class="font-black text-indigo-900 uppercase">${a.nama}</span><br>
-                            <span class="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">KELAS ${a.kelas}</span>
-                        </td>
-                        <td class="p-5 font-mono text-slate-400 text-[10px] italic">${s.key}</td>
-                        <td class="p-5 text-center">
-                            <button onclick="hapusKeanggotaan('${s.key}')" class="bg-red-50 text-red-500 p-2 px-4 rounded-xl text-[9px] font-black hover:bg-red-500 hover:text-white">HAPUS</button>
-                        </td>
-                    </tr>`;
-            });
+            if (snap.exists()) {
+                snap.forEach(s => {
+                    count++;
+                    const a = s.val();
+                    tbody.innerHTML += `
+                        <tr class="border-t border-slate-50 hover:bg-indigo-50 transition-all">
+                            <td class="p-5">
+                                <span class="font-black text-indigo-900 uppercase">${a.nama}</span><br>
+                                <span class="text-[9px] text-slate-400 font-bold uppercase">KELAS ${a.kelas}</span>
+                            </td>
+                            <td class="p-5 font-mono text-slate-400 text-[10px] italic">${s.key}</td>
+                            <td class="p-5 text-center">
+                                <button onclick="db.ref('anggota_perpus/${s.key}').remove()" class="text-red-500 font-black uppercase text-[9px]">Hapus</button>
+                            </td>
+                        </tr>`;
+                });
+            } else {
+                tbody.innerHTML = "<tr><td colspan='3' class='p-10 text-center text-slate-300 italic'>Belum ada data di tabel anggota_perpus.</td></tr>";
+            }
             counter.innerText = count;
         });
-
-        function hapusKeanggotaan(id) {
-            if(confirm("Batalkan keanggotaan perpus untuk siswa ini?")) {
-                db.ref('perpus_anggota/' + id).remove();
-            }
-        }
     </script>
 </body>
 </html>
