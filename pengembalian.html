@@ -14,7 +14,7 @@
         <div class="bg-indigo-700 p-6 rounded-[2rem] text-white shadow-lg mb-6 flex justify-between items-center border-b-8 border-indigo-900">
             <div>
                 <h1 class="text-2xl font-black italic uppercase tracking-tighter text-yellow-400">Log Pengembalian 📥</h1>
-                <p class="text-[10px] font-bold opacity-80 uppercase tracking-widest">Data Sinkron dengan Scanner Sirkulasi</p>
+                <p class="text-[10px] font-bold opacity-80 uppercase tracking-widest">Sinkronisasi Data Sirkulasi & Denda</p>
             </div>
             <div class="text-right bg-indigo-800 p-3 rounded-2xl border border-indigo-600">
                 <p class="text-[9px] font-black opacity-60 uppercase">Tarif Denda</p>
@@ -51,11 +51,12 @@
 
         <div class="mt-6 text-center flex justify-center gap-6">
             <a href="menu-perpus.html" class="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-indigo-600 transition-all">🏠 Dashboard Utama</a>
-            <a href="log-sirkulasi.html" class="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-indigo-600 transition-all">📜 Riwayat Lengkap</a>
+            <a href="laporan-perpus.html" class="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-indigo-600 transition-all">📊 Laporan</a>
         </div>
     </div>
 
     <script>
+        // CONFIG FIREBASE
         const firebaseConfig = { databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app" };
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
@@ -76,7 +77,7 @@
                     return;
                 }
 
-                // Kita balik datanya agar yang terbaru di atas
+                // Ambil data dan balik agar yang terbaru di atas
                 const dataRaw = [];
                 snap.forEach(child => {
                     dataRaw.push({ key: child.key, ...child.val() });
@@ -86,45 +87,48 @@
                 dataRaw.forEach(p => {
                     if (p.status === "DIPINJAM") countActive++;
 
-                    // LOGIKA TANGGAL PINJAM
-                    const tglPinjamTampil = p.waktuPinjam ? p.waktuPinjam.split(',')[0] : "-";
+                    // 1. FIX TANGGAL PINJAM (Cari semua kemungkinan variabel agar tidak undefined)
+                    const tglPinjamRaw = p.waktuPinjam || p.tanggal || p.tgl_pinjam || "-";
+                    const tglPinjamTampil = tglPinjamRaw.split(',')[0]; 
 
-                    // LOGIKA TANGGAL KEMBALI (Sinkron dengan Scan)
-                    const tglKembaliTampil = (p.status === "DIKEMBALIKAN") 
-                        ? `<span class="text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100">${p.waktuKembali}</span>` 
-                        : `<span class="text-slate-300 italic font-normal">Belum Kembali</span>`;
-
-                    // LOGIKA DENDA
-                    let dendaTampil = 0;
+                    // 2. FIX TANGGAL KEMBALI
+                    let tglKembaliTampil = "";
                     if (p.status === "DIKEMBALIKAN") {
-                        dendaTampil = p.denda_final || 0;
+                        // Ambil waktuKembali atau tgl_kembali, jika tidak ada tampilkan "Selesai"
+                        const tglKembaliRaw = p.waktuKembali || p.tgl_kembali || "Selesai";
+                        tglKembaliTampil = `<span class="text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100">${tglKembaliRaw.split(',')[0]}</span>`;
                     } else {
-                        // Hitung denda berjalan (Real-time sebelum dikembalikan)
-                        const tglPinjamObj = p.timestamp ? new Date(p.timestamp) : new Date();
-                        const tglSkrg = new Date();
-                        const selisihHari = Math.floor((tglSkrg - tglPinjamObj) / (1000 * 60 * 60 * 24));
+                        tglKembaliTampil = `<span class="text-slate-300 italic font-normal">Belum Kembali</span>`;
+                    }
+
+                    // 3. HITUNG DENDA
+                    let dendaFinal = p.denda_final || 0;
+                    if (p.status === "DIPINJAM" && p.timestamp) {
+                        const selisihMilis = new Date().getTime() - p.timestamp;
+                        const selisihHari = Math.floor(selisihMilis / (1000 * 60 * 60 * 24));
                         if (selisihHari > BATAS_HARI) {
-                            dendaTampil = (selisihHari - BATAS_HARI) * DENDA_PER_HARI;
+                            dendaFinal = (selisihHari - BATAS_HARI) * DENDA_PER_HARI;
                         }
                     }
 
-                    // AKSI: Tombol Selesai hanya muncul jika status masih DIPINJAM
+                    // 4. STATUS / AKSI
                     const aksiTampil = (p.status === "DIPINJAM") 
-                        ? `<button onclick="prosesKembaliManual('${p.key}', '${p.idSiswa}', '${p.idBuku}', ${dendaTampil})" class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-[9px] hover:bg-indigo-700 transition-all">Selesai ✅</button>`
-                        : `<span class="text-emerald-500 font-black">🟢 SUDAH KEMBALI</span>`;
+                        ? `<button onclick="prosesKembaliManual('${p.key}', '${p.idSiswa}', '${p.idBuku}', ${dendaFinal})" 
+                            class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase hover:bg-indigo-700 active:scale-95 transition-all">Selesai ✅</button>`
+                        : `<span class="text-emerald-500 font-black tracking-tighter uppercase text-[9px]">🟢 Sudah Kembali</span>`;
 
                     body.innerHTML += `
-                        <tr class="border-b border-slate-50 hover:bg-slate-50 transition-all">
-                            <td class="p-5 font-black text-slate-400">#${p.idSiswa}</td>
+                        <tr class="border-b border-slate-50 hover:bg-slate-50/50 transition-all">
+                            <td class="p-5 font-black text-slate-400">#${p.idSiswa || '-'}</td>
                             <td class="p-5">
-                                <p class="font-black text-indigo-900 uppercase tracking-tight">${p.namaSiswa}</p>
-                                <p class="text-[10px] font-bold text-slate-400 uppercase italic leading-tight">${p.judulBuku}</p>
+                                <p class="font-black text-indigo-900 uppercase tracking-tight">${p.namaSiswa || 'Tanpa Nama'}</p>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase italic leading-tight">${p.judulBuku || 'Tanpa Judul'}</p>
                             </td>
-                            <td class="p-5 text-center text-slate-500">${tglPinjamTampil}</td>
-                            <td class="p-5 text-center">${tglKembaliTampil}</td>
+                            <td class="p-5 text-center text-slate-500 font-bold">${tglPinjamTampil}</td>
+                            <td class="p-5 text-center font-bold">${tglKembaliTampil}</td>
                             <td class="p-5 text-center">
-                                <span class="${dendaTampil > 0 ? 'text-red-600 bg-red-50' : 'text-slate-400'} font-black">
-                                    Rp ${dendaTampil.toLocaleString()}
+                                <span class="${dendaFinal > 0 ? 'text-red-600 bg-red-50' : 'text-slate-400'} font-black text-xs">
+                                    Rp ${dendaFinal.toLocaleString()}
                                 </span>
                             </td>
                             <td class="p-5 text-center">
@@ -139,10 +143,10 @@
 
         async function prosesKembaliManual(key, idSiswa, idBuku, totalDenda) {
             const tglSkrg = new Date().toLocaleString('id-ID');
-            if (!confirm("Proses pengembalian manual untuk siswa ini?")) return;
+            if (!confirm("Proses pengembalian manual untuk buku ini?")) return;
 
             try {
-                // Update Laporan
+                // Update Laporan ke Firebase
                 await db.ref('perpus_laporan/' + key).update({
                     status: "DIKEMBALIKAN",
                     waktuKembali: tglSkrg,
@@ -150,16 +154,18 @@
                     waktu_proses: new Date().getTime()
                 });
 
-                // Update Stok
+                // Update Stok Buku
                 if(idBuku) {
                     await db.ref('koleksi_buku/' + idBuku).transaction(c => {
-                        if(c) c.stok_tersedia = (parseInt(c.stok_tersedia) || 0) + 1;
+                        if(c) {
+                            c.stok_tersedia = (parseInt(c.stok_tersedia) || 0) + 1;
+                        }
                         return c;
                     });
                 }
 
-                // Update Saldo jika denda
-                if(totalDenda > 0) {
+                // Potong Saldo jika ada denda
+                if(totalDenda > 0 && idSiswa) {
                     const sRef = db.ref('anggota_perpus/' + idSiswa);
                     const snap = await sRef.once('value');
                     if(snap.exists()) {
@@ -168,12 +174,14 @@
                     }
                 }
 
-                alert("Berhasil dikembalikan secara manual!");
+                alert("BERHASIL: Buku telah kembali.");
             } catch (e) {
+                console.error(e);
                 alert("Gagal memproses data.");
             }
         }
 
+        // Jalankan fungsi saat halaman dibuka
         muatDataPinjaman();
     </script>
 </body>
