@@ -11,6 +11,7 @@
     <style>
         .toast-notif { animation: slideUp 0.5s ease-out; }
         @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .input-focus:focus { border-color: #4f46e5; box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1); }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen pb-20">
@@ -18,7 +19,7 @@
     <header class="bg-indigo-900 text-white pt-10 pb-20 px-6 rounded-b-[3.5rem] shadow-2xl relative">
         <div class="max-w-4xl mx-auto flex justify-between items-center relative z-10">
             <div>
-                <p class="text-indigo-300 text-[10px] font-black uppercase tracking-[0.3em] mb-1">Dual-Database Synchronized</p>
+                <p class="text-indigo-300 text-[10px] font-black uppercase tracking-[0.3em] mb-1">Smart Integrated System</p>
                 <h1 class="text-3xl font-black italic tracking-tighter uppercase text-yellow-400">Aktivasi <span class="text-white">Anggota</span></h1>
             </div>
             <button onclick="window.location.href='menu-perpus.html'" class="h-12 w-12 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20 backdrop-blur-md hover:bg-white/20 transition-all">🏠</button>
@@ -33,20 +34,40 @@
                 <div id="reader" class="rounded-3xl overflow-hidden border-4 border-slate-100 shadow-inner"></div>
             </div>
 
-            <div class="bg-white p-6 rounded-[2.5rem] shadow-xl border-t-8 border-yellow-400 flex flex-col justify-center text-center">
-                <h2 class="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest italic">Konfirmasi Identitas</h2>
-                <div class="bg-slate-50 p-6 rounded-[2rem] border-2 border-dashed border-slate-200 mb-4">
-                    <p id="infoStatus" class="text-[9px] font-black text-slate-300 uppercase tracking-widest">Menunggu Scan...</p>
-                    <h3 id="displayNama" class="text-2xl font-black text-indigo-900 uppercase mt-2 italic">- Belum Ada Data -</h3>
-                    <p id="displayKelas" class="text-sm font-bold text-emerald-600 mt-1">-</p>
-                    <p id="displaySource" class="text-[8px] font-bold text-slate-400 mt-2 uppercase"></p>
+            <div class="bg-white p-6 rounded-[2.5rem] shadow-xl border-t-8 border-yellow-400">
+                <h2 class="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest italic text-center">Data Registrasi</h2>
+                
+                <div class="space-y-4">
+                    <div class="bg-slate-50 p-4 rounded-2xl border-2 border-slate-100">
+                        <label class="text-[9px] font-black text-slate-400 uppercase ml-1">ID Terdeteksi</label>
+                        <input type="text" id="nisn" readonly class="w-full bg-transparent text-lg font-black text-indigo-900 outline-none" placeholder="Menunggu Scan...">
+                    </div>
+
+                    <div>
+                        <label class="text-[9px] font-black text-slate-400 uppercase ml-1">Nama Lengkap</label>
+                        <input type="text" id="nama" placeholder="Ketik Nama Jika Tidak Muncul" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-3 text-sm font-bold outline-none input-focus transition-all uppercase">
+                    </div>
+
+                    <div>
+                        <label class="text-[9px] font-black text-slate-400 uppercase ml-1">Kelas</label>
+                        <select id="kelas" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-3 text-sm font-bold outline-none input-focus transition-all">
+                            <option value="">Pilih Kelas</option>
+                            <option value="KELAS 1">KELAS 1</option>
+                            <option value="KELAS 2">KELAS 2</option>
+                            <option value="KELAS 3">KELAS 3</option>
+                            <option value="KELAS 4">KELAS 4</option>
+                            <option value="KELAS 5">KELAS 5</option>
+                            <option value="KELAS 6">KELAS 6</option>
+                            <option value="GURU">GURU/STAFF</option>
+                        </select>
+                    </div>
+
+                    <div id="statusBadge" class="text-center">
+                        <span id="infoStatus" class="text-[8px] font-black px-3 py-1 bg-slate-100 text-slate-400 rounded-full uppercase italic">Silakan Scan Kartu</span>
+                    </div>
+
+                    <button onclick="simpanAnggota()" id="btnSimpan" disabled class="w-full bg-slate-200 text-slate-400 py-5 rounded-2xl font-black uppercase italic shadow-lg cursor-not-allowed transition-all mt-2">AKTIFKAN KEANGGOTAAN ✅</button>
                 </div>
-                
-                <input type="hidden" id="nisn">
-                <input type="hidden" id="nama">
-                <input type="hidden" id="kelas">
-                
-                <button onclick="simpanAnggota()" id="btnSimpan" disabled class="w-full bg-slate-200 text-slate-400 py-5 rounded-2xl font-black uppercase italic shadow-lg cursor-not-allowed transition-all">AKTIFKAN KEANGGOTAAN ✅</button>
             </div>
         </div>
 
@@ -99,9 +120,9 @@
         const db = firebase.database();
 
         let dataAnggotaGlobal = [];
-
-        // SCANNER LOGIC
         let scanner = new Html5Qrcode("reader");
+
+        // START SCANNER
         scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (id) => {
             cariDataSiswa(id.trim());
         }).catch(err => console.error(err));
@@ -115,66 +136,74 @@
             setTimeout(() => toast.remove(), 3000);
         }
 
-        // FUNGSI CARI DATA (DUAL CHECK: KANTIN_USERS & USERS)
+        // FUNGSI CARI DATA DENGAN AUTO-FILL ATAU MANUAL INPUT
         function cariDataSiswa(id) {
-            document.getElementById('infoStatus').innerText = "MENGECEK...";
+            document.getElementById('nisn').value = id;
+            document.getElementById('infoStatus').innerText = "MENGECEK DATA...";
             
             // 1. Cek di kantin_users
             db.ref('kantin_users/' + id).once('value', snapKantin => {
                 if(snapKantin.exists()) {
-                    isiForm(id, snapKantin.val(), "DATABASE: KANTIN USERS");
+                    setFormValues(id, snapKantin.val().nama, snapKantin.val().kelas, "✅ DATA DITEMUKAN (KANTIN)");
                 } else {
-                    // 2. Jika tidak ada, cek di users
+                    // 2. Cek di users
                     db.ref('users/' + id).once('value', snapUsers => {
                         if(snapUsers.exists()) {
-                            isiForm(id, snapUsers.val(), "DATABASE: USERS");
+                            setFormValues(id, snapUsers.val().nama, snapUsers.val().kelas, "✅ DATA DITEMUKAN (USERS)");
                         } else {
-                            showToast("❌ ID TIDAK TERDAFTAR!", "bg-red-500");
-                            document.getElementById('infoStatus').innerText = "TIDAK DITEMUKAN";
-                            document.getElementById('displayNama').innerText = "- TIDAK TERDAFTAR -";
-                            document.getElementById('displayKelas').innerText = "-";
-                            document.getElementById('btnSimpan').disabled = true;
-                            document.getElementById('btnSimpan').className = "w-full bg-slate-200 text-slate-400 py-5 rounded-2xl font-black uppercase italic cursor-not-allowed";
+                            // 3. Jika TIDAK ADA, kosongkan nama & kelas supaya bisa diisi manual
+                            setFormValues(id, "", "", "⚠️ ID BARU: LENGKAPI NAMA & KELAS");
+                            document.getElementById('nama').focus();
                         }
                     });
                 }
             });
         }
 
-        function isiForm(id, data, source) {
-            showToast("✅ DATA DITEMUKAN!", "bg-emerald-500");
-            document.getElementById('infoStatus').innerText = "SIAP DIAKTIFKAN";
-            document.getElementById('displayNama').innerText = data.nama;
-            document.getElementById('displayKelas').innerText = data.kelas || '-';
-            document.getElementById('displaySource').innerText = source;
-            
-            document.getElementById('nisn').value = id;
-            document.getElementById('nama').value = data.nama;
-            document.getElementById('kelas').value = data.kelas || '-';
+        function setFormValues(id, nama, kelas, status) {
+            document.getElementById('nama').value = nama || "";
+            document.getElementById('kelas').value = kelas || "";
+            document.getElementById('infoStatus').innerText = status;
             
             const btn = document.getElementById('btnSimpan');
             btn.disabled = false;
-            btn.className = "w-full bg-emerald-500 text-white py-5 rounded-2xl font-black uppercase italic shadow-lg shadow-emerald-200 scale-105 transition-all";
+            btn.className = "w-full bg-emerald-500 text-white py-5 rounded-2xl font-black uppercase italic shadow-lg shadow-emerald-200 scale-105 transition-all mt-2";
+            
+            if(status.includes("DITEMUKAN")) {
+                document.getElementById('infoStatus').className = "text-[8px] font-black px-3 py-1 bg-emerald-100 text-emerald-600 rounded-full uppercase italic";
+                showToast("DATA DITEMUKAN", "bg-emerald-500");
+            } else {
+                document.getElementById('infoStatus').className = "text-[8px] font-black px-3 py-1 bg-orange-100 text-orange-600 rounded-full uppercase italic";
+                showToast("ID BARU TERDETEKSI", "bg-orange-500");
+            }
         }
 
         function simpanAnggota() {
             const nisn = document.getElementById('nisn').value;
+            const nama = document.getElementById('nama').value.toUpperCase();
+            const kelas = document.getElementById('kelas').value;
+
+            if(!nisn || !nama || !kelas) {
+                alert("Mohon lengkapi ID, Nama, dan Kelas!");
+                return;
+            }
+
             const dataSiswa = {
                 id: nisn,
-                nama: document.getElementById('nama').value,
-                kelas: document.getElementById('kelas').value,
+                nama: nama,
+                kelas: kelas,
                 status: "AKTIF",
                 tgl_daftar: new Date().toLocaleDateString('id-ID'),
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             };
 
-            db.ref('anggota_perpus/' + nisn).update(dataSiswa)
-            .then(() => {
-                showToast("MEMBER AKTIF!", "bg-indigo-600");
+            db.ref('anggota_perpus/' + nisn).update(dataSiswa).then(() => {
+                showToast("MEMBER BERHASIL DIAKTIFKAN!");
                 setTimeout(() => location.reload(), 1000);
             });
         }
 
+        // FUNGSI LOAD TABEL (MENU ASLI)
         db.ref('anggota_perpus').on('value', snap => {
             dataAnggotaGlobal = [];
             snap.forEach(s => { dataAnggotaGlobal.push({ key: s.key, ...s.val() }); });
@@ -204,7 +233,7 @@
                         </tr>`;
                 }
             });
-            if (filteredCount === 0) tbody.innerHTML = "<tr><td colspan='3' class='p-10 text-center text-slate-300 italic'>Tidak ada data.</td></tr>";
+            if (filteredCount === 0) tbody.innerHTML = "<tr><td colspan='3' class='p-10 text-center text-slate-300 italic'>Belum ada data.</td></tr>";
             counter.innerText = filteredCount;
         }
 
