@@ -17,7 +17,7 @@
                 <p class="text-indigo-300 text-[10px] font-black uppercase tracking-[0.3em] mb-1">Database Terintegrasi</p>
                 <h1 class="text-3xl font-black italic tracking-tighter uppercase text-yellow-400">Aktivasi <span class="text-white">Anggota</span></h1>
             </div>
-            <button onclick="window.location.href='menu-perpus.html'" class="h-12 w-12 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20 backdrop-blur-md">🏠</button>
+            <button onclick="window.location.href='menu-perpus.html'" class="h-12 w-12 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20 backdrop-blur-md hover:bg-white/20 transition-all">🏠</button>
         </div>
     </header>
 
@@ -41,18 +41,31 @@
                 <input type="hidden" id="nama">
                 <input type="hidden" id="kelas">
                 
-                <button onclick="simpanAnggota()" id="btnSimpan" disabled class="w-full bg-slate-200 text-slate-400 py-5 rounded-2xl font-black uppercase italic shadow-lg cursor-not-allowed">AKTIFKAN KEANGGOTAAN ✅</button>
+                <button onclick="simpanAnggota()" id="btnSimpan" disabled class="w-full bg-slate-200 text-slate-400 py-5 rounded-2xl font-black uppercase italic shadow-lg cursor-not-allowed transition-all">AKTIFKAN KEANGGOTAAN ✅</button>
             </div>
         </div>
 
         <div class="bg-white rounded-[2.5rem] shadow-xl overflow-hidden">
-            <div class="p-6 border-b border-slate-50 flex justify-between items-center bg-indigo-50/30">
+            <div class="p-6 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center gap-4 bg-indigo-50/30">
                 <div>
                     <h3 class="font-black uppercase italic text-xs text-indigo-900">Daftar Anggota Perpus</h3>
-                    <p class="text-[8px] font-bold text-indigo-400 uppercase tracking-widest">Ditarik dari tabel: anggota_perpus</p>
+                    <p class="text-[8px] font-bold text-indigo-400 uppercase tracking-widest">Tabel: anggota_perpus</p>
                 </div>
-                <div id="jumlahAnggota" class="bg-indigo-600 text-white px-4 py-1 rounded-full font-black text-[10px]">0</div>
+                
+                <div class="flex items-center gap-3">
+                    <select id="filterKelas" onchange="tampilkanData()" class="bg-white border-2 border-indigo-100 rounded-xl px-4 py-2 text-[10px] font-black text-indigo-900 uppercase italic outline-none focus:border-indigo-500 shadow-sm">
+                        <option value="SEMUA">Tampilkan Semua Kelas</option>
+                        <option value="1">Kelas 1</option>
+                        <option value="2">Kelas 2</option>
+                        <option value="3">Kelas 3</option>
+                        <option value="4">Kelas 4</option>
+                        <option value="5">Kelas 5</option>
+                        <option value="6">Kelas 6</option>
+                    </select>
+                    <div id="jumlahAnggota" class="bg-indigo-600 text-white px-4 py-2 rounded-xl font-black text-[10px] shadow-lg shadow-indigo-100">0</div>
+                </div>
             </div>
+
             <div class="overflow-x-auto">
                 <table class="w-full text-left">
                     <thead class="bg-slate-50 text-[9px] font-black uppercase text-slate-400">
@@ -62,28 +75,33 @@
                             <th class="p-5 text-center">Opsi</th>
                         </tr>
                     </thead>
-                    <tbody id="tabelAnggota" class="text-xs font-bold text-slate-600"></tbody>
+                    <tbody id="tabelAnggota" class="text-xs font-bold text-slate-600">
+                        <tr><td colspan="3" class="p-10 text-center text-slate-300 italic animate-pulse">Memuat data...</td></tr>
+                    </tbody>
                 </table>
             </div>
         </div>
     </main>
 
     <script>
-        // KONFIGURASI DISESUAIKAN DENGAN GAMBAR FIREBASE BAPAK
+        // 1. KONFIGURASI FIREBASE
         const firebaseConfig = {
             databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app"
         };
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // 1. SCANNER
+        let dataAnggotaGlobal = []; // Untuk menampung data agar filter lebih cepat
+
+        // 2. SCANNER QR
         let scanner = new Html5Qrcode("reader");
         scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (id) => {
             cariDataSiswa(id.trim());
         }).catch(err => console.error(err));
 
-        // 2. CARI DATA (TETAP KE KANTIN_USERS JIKA TERHUBUNG)
+        // 3. CARI DATA SISWA (SUMBER MASTER DATA)
         function cariDataSiswa(id) {
+            document.getElementById('infoStatus').innerText = "MENCARI DATA...";
             db.ref('kantin_users/' + id).once('value', snap => {
                 const user = snap.val();
                 const btn = document.getElementById('btnSimpan');
@@ -91,58 +109,98 @@
                     document.getElementById('infoStatus').innerText = "DATA DITEMUKAN!";
                     document.getElementById('displayNama').innerText = user.nama;
                     document.getElementById('displayKelas').innerText = "KELAS " + (user.kelas || '-');
+                    
+                    // Isi hidden input
                     document.getElementById('nisn').value = id;
                     document.getElementById('nama').value = user.nama;
                     document.getElementById('kelas').value = user.kelas || '-';
+                    
+                    // Aktifkan tombol
                     btn.disabled = false;
-                    btn.className = "w-full bg-emerald-500 text-white py-5 rounded-2xl font-black uppercase italic shadow-lg shadow-emerald-100";
+                    btn.className = "w-full bg-emerald-500 text-white py-5 rounded-2xl font-black uppercase italic shadow-lg shadow-emerald-200 hover:scale-95 transition-all";
                 } else {
-                    alert("ID tidak terdaftar di database!");
+                    document.getElementById('infoStatus').innerText = "ID TIDAK TERDAFTAR!";
+                    alert("ID: " + id + " tidak ditemukan di database kantin_users!");
                 }
             });
         }
 
-        // 3. SIMPAN KE TABEL anggota_perpus
+        // 4. SIMPAN/AKTIVASI ANGGOTA (PERKUAT SYSTEM)
         function simpanAnggota() {
             const nisn = document.getElementById('nisn').value;
-            db.ref('anggota_perpus/' + nisn).set({
+            const dataSiswa = {
                 nama: document.getElementById('nama').value,
                 kelas: document.getElementById('kelas').value,
-                tgl_daftar: new Date().toLocaleDateString('id-ID')
-            }).then(() => {
-                alert("Berhasil Diaktifkan!");
+                tgl_daftar: new Date().toLocaleDateString('id-ID'),
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            };
+
+            // Menggunakan update agar lebih aman
+            db.ref('anggota_perpus/' + nisn).update(dataSiswa)
+            .then(() => {
+                alert("Berhasil! " + dataSiswa.nama + " kini resmi menjadi anggota perpus.");
+                // Reset form tanpa reload jika ingin cepat, tapi reload lebih bersih
                 location.reload();
+            })
+            .catch(error => {
+                alert("Gagal menyimpan: " + error.message);
             });
         }
 
-        // 4. TAMPILKAN DAFTAR (PULIHKAN DATA DARI anggota_perpus)
+        // 5. LOAD & FILTER DATA
         db.ref('anggota_perpus').on('value', snap => {
+            dataAnggotaGlobal = [];
+            snap.forEach(s => {
+                dataAnggotaGlobal.push({
+                    key: s.key,
+                    ...s.val()
+                });
+            });
+            tampilkanData();
+        });
+
+        function tampilkanData() {
             const tbody = document.getElementById('tabelAnggota');
             const counter = document.getElementById('jumlahAnggota');
-            tbody.innerHTML = "";
-            let count = 0;
+            const filter = document.getElementById('filterKelas').value;
             
-            if (snap.exists()) {
-                snap.forEach(s => {
-                    count++;
-                    const a = s.val();
-                    tbody.innerHTML += `
-                        <tr class="border-t border-slate-50 hover:bg-indigo-50 transition-all">
-                            <td class="p-5">
-                                <span class="font-black text-indigo-900 uppercase">${a.nama}</span><br>
-                                <span class="text-[9px] text-slate-400 font-bold uppercase">KELAS ${a.kelas}</span>
-                            </td>
-                            <td class="p-5 font-mono text-slate-400 text-[10px] italic">${s.key}</td>
-                            <td class="p-5 text-center">
-                                <button onclick="db.ref('anggota_perpus/${s.key}').remove()" class="text-red-500 font-black uppercase text-[9px]">Hapus</button>
-                            </td>
-                        </tr>`;
+            tbody.innerHTML = "";
+            let filteredCount = 0;
+
+            if (dataAnggotaGlobal.length > 0) {
+                dataAnggotaGlobal.forEach(a => {
+                    // Logika Filter
+                    if (filter === "SEMUA" || a.kelas == filter) {
+                        filteredCount++;
+                        tbody.innerHTML += `
+                            <tr class="border-t border-slate-50 hover:bg-indigo-50 transition-all">
+                                <td class="p-5">
+                                    <span class="font-black text-indigo-900 uppercase">${a.nama}</span><br>
+                                    <span class="text-[9px] text-slate-400 font-bold uppercase">KELAS ${a.kelas}</span>
+                                </td>
+                                <td class="p-5 font-mono text-slate-400 text-[10px] italic">${a.key}</td>
+                                <td class="p-5 text-center">
+                                    <button onclick="hapusAnggota('${a.key}', '${a.nama}')" class="bg-red-50 text-red-500 px-3 py-1 rounded-lg font-black uppercase text-[9px] hover:bg-red-500 hover:text-white transition-all">Hapus</button>
+                                </td>
+                            </tr>`;
+                    }
                 });
+                
+                if (filteredCount === 0) {
+                    tbody.innerHTML = "<tr><td colspan='3' class='p-10 text-center text-slate-300 italic font-bold'>Tidak ada anggota di Kelas " + filter + "</td></tr>";
+                }
             } else {
-                tbody.innerHTML = "<tr><td colspan='3' class='p-10 text-center text-slate-300 italic'>Belum ada data di tabel anggota_perpus.</td></tr>";
+                tbody.innerHTML = "<tr><td colspan='3' class='p-10 text-center text-slate-300 italic'>Belum ada data anggota terdaftar.</td></tr>";
             }
-            counter.innerText = count;
-        });
+            counter.innerText = filteredCount;
+        }
+
+        // 6. FUNGSI HAPUS
+        function hapusAnggota(key, nama) {
+            if (confirm("Hapus keanggotaan " + nama + "?")) {
+                db.ref('anggota_perpus/' + key).remove();
+            }
+        }
     </script>
 </body>
 </html>
