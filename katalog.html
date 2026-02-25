@@ -8,9 +8,34 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Layout Cetak Kolektif */
+        #areaCetakKolektif { display: none; }
+        
+        @media print {
+            body * { visibility: hidden; }
+            #areaCetakKolektif, #areaCetakKolektif * { visibility: visible; }
+            #areaCetakKolektif { 
+                display: grid !important; 
+                grid-template-columns: repeat(4, 1fr); 
+                gap: 15px; 
+                position: absolute; 
+                left: 0; 
+                top: 0; 
+                width: 100%;
+                padding: 10px;
+            }
+            .item-qr-cetak { 
+                border: 1px solid #ccc; 
+                padding: 10px; 
+                text-align: center; 
+                page-break-inside: avoid;
+            }
+        }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen pb-10">
@@ -29,13 +54,15 @@
         </div>
     </nav>
 
+    <div id="areaCetakKolektif"></div>
+
     <div class="max-w-2xl mx-auto px-4">
         <div class="bg-orange-600 text-white p-6 rounded-[2.5rem] shadow-xl mb-6 border-b-8 border-orange-800 flex justify-between items-center">
             <div>
                 <h1 class="text-xl font-black uppercase italic leading-none">Manajemen Buku 📖</h1>
-                <p class="text-[9px] font-bold opacity-80 uppercase tracking-widest mt-2 italic text-orange-100">Tambah Koleksi & Update Stok</p>
+                <p class="text-[9px] font-bold opacity-80 uppercase tracking-widest mt-2 italic text-orange-100">Cetak Label QR Kolektif Aktif</p>
             </div>
-            <div class="h-10 w-10 bg-orange-500 rounded-full flex items-center justify-center text-xl shadow-inner border border-orange-400">✨</div>
+            <button onclick="siapkanCetakKolektif()" class="bg-white text-orange-600 px-4 py-2 rounded-2xl font-black text-[10px] uppercase shadow-lg hover:scale-105 transition-all">🖨️ Cetak Kolektif</button>
         </div>
 
         <div id="scannerArea" class="hidden mb-6 rounded-[2.5rem] overflow-hidden border-4 border-orange-500 bg-black relative shadow-2xl">
@@ -47,7 +74,10 @@
             <div class="relative">
                 <label class="text-[8px] font-black text-slate-400 ml-3 uppercase italic">Barcode / Kode Buku</label>
                 <input type="text" id="isbn" oninput="cekBukuEksis(this.value)" placeholder="SCAN ATAU KETIK KODE..." class="w-full p-4 bg-slate-50 rounded-2xl font-black outline-none border-2 border-transparent focus:border-orange-500 uppercase text-sm tracking-widest transition-all">
-                <button onclick="bukaScanner()" class="absolute right-2 top-[22px] bottom-2 bg-orange-600 text-white px-5 rounded-xl font-black text-[10px] hover:bg-orange-700 transition-all flex items-center gap-1">📷 SCAN</button>
+                <div class="absolute right-2 top-[22px] flex gap-1">
+                    <button onclick="buatQrLangsung()" class="bg-indigo-500 text-white px-3 rounded-xl font-black text-[9px] hover:bg-indigo-600 transition-all uppercase">Buat QR 🖼️</button>
+                    <button onclick="bukaScanner()" class="bg-orange-600 text-white px-3 rounded-xl font-black text-[9px] hover:bg-orange-700 transition-all flex items-center gap-1 uppercase">📷 SCAN</button>
+                </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -87,8 +117,7 @@
                             <th class="p-4 text-center">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody id="listBuku" class="text-[11px] font-bold text-slate-600">
-                        </tbody>
+                    <tbody id="listBuku" class="text-[11px] font-bold text-slate-600"></tbody>
                 </table>
             </div>
         </div>
@@ -99,69 +128,109 @@
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // 1. CEK BUKU EKSIS (Auto fill saat scan/ketik)
+        let listBukuGlobal = [];
+
+        // --- FUNGSI CETAK KOLEKTIF (BARU) ---
+        function siapkanCetakKolektif() {
+            const area = document.getElementById('areaCetakKolektif');
+            area.innerHTML = "";
+            
+            if(listBukuGlobal.length === 0) return alert("Belum ada data buku.");
+
+            listBukuGlobal.forEach((b, index) => {
+                const divItem = document.createElement('div');
+                divItem.className = "item-qr-cetak";
+                divItem.innerHTML = `<div id="qr-kolektif-${index}" class="flex justify-center"></div><p style="font-size: 8px; font-weight: bold; margin-top: 5px;">${b.isbn}<br>${b.judul.substring(0, 15)}</p>`;
+                area.appendChild(divItem);
+
+                new QRCode(document.getElementById(`qr-kolektif-${index}`), {
+                    text: b.isbn,
+                    width: 70,
+                    height: 70
+                });
+            });
+
+            setTimeout(() => { window.print(); }, 1000);
+        }
+
+        // --- FUNGSI QR PER BUKU ---
+        function buatQrLangsung() {
+            const isbn = document.getElementById('isbn').value;
+            const judul = document.getElementById('judul').value;
+            if(!isbn) return alert("Isi kode buku!");
+            
+            const area = document.getElementById('areaCetakKolektif');
+            area.innerHTML = `<div class="item-qr-cetak"><div id="qr-single" class="flex justify-center"></div><p style="font-size: 10px; font-weight: bold; margin-top: 5px;">${isbn}<br>${judul}</p></div>`;
+            
+            new QRCode(document.getElementById("qr-single"), { text: isbn, width: 100, height: 100 });
+            setTimeout(() => { window.print(); }, 500);
+        }
+
+        // --- LOGIKA DATABASE (TETAP) ---
         function cekBukuEksis(id) {
             if(!id) return;
             db.ref('koleksi_buku/' + id).once('value', snap => {
                 const data = snap.val();
-                const infoBox = document.getElementById('infoStok');
-                const judulInput = document.getElementById('judul');
-                
                 if(data) {
-                    judulInput.value = data.judul;
-                    infoBox.innerText = `Buku Terdaftar. Stok saat ini: ${data.stok_total}. Masukkan jumlah untuk menambah.`;
-                    infoBox.classList.remove('hidden');
+                    document.getElementById('judul').value = data.judul;
+                    document.getElementById('infoStok').innerText = `Stok saat ini: ${data.stok_total}`;
+                    document.getElementById('infoStok').classList.remove('hidden');
                 } else {
-                    judulInput.value = "";
-                    infoBox.classList.add('hidden');
+                    document.getElementById('infoStok').classList.add('hidden');
                 }
             });
         }
 
-        // 2. SIMPAN DENGAN TRANSACTION (SINKRON ANTAR HP)
         function simpanBuku() {
             const id = document.getElementById('isbn').value.trim();
             const jdl = document.getElementById('judul').value.trim().toUpperCase();
             const inputStok = parseInt(document.getElementById('stok').value);
 
-            if(!id || !jdl || isNaN(inputStok)) {
-                alert("Lengkapi Barcode, Judul, dan Jumlah!");
-                return;
-            }
+            if(!id || !jdl || isNaN(inputStok)) return alert("Data tidak lengkap!");
 
-            const bukuRef = db.ref('koleksi_buku/' + id);
-            
-            bukuRef.transaction((currentData) => {
+            db.ref('koleksi_buku/' + id).transaction((currentData) => {
                 if (currentData === null) {
-                    return {
-                        isbn: id, judul: jdl,
-                        stok_total: inputStok,
-                        stok_tersedia: inputStok,
-                        last_update: new Date().toLocaleString()
-                    };
+                    return { isbn: id, judul: jdl, stok_total: inputStok, stok_tersedia: inputStok };
                 } else {
                     currentData.stok_total = (parseInt(currentData.stok_total) || 0) + inputStok;
                     currentData.stok_tersedia = (parseInt(currentData.stok_tersedia) || 0) + inputStok;
                     currentData.judul = jdl;
-                    currentData.last_update = new Date().toLocaleString();
                     return currentData;
                 }
-            }, (error, committed, snapshot) => {
-                if (committed) {
-                    alert(`✅ BERHASIL SINKRON!\nStok ${snapshot.val().judul} diperbarui.`);
-                    resetForm();
-                }
-            });
+            }, (err, committed) => { if(committed) { alert("Berhasil!"); resetForm(); } });
         }
 
-        // 3. FILTER TABEL (PENCARIAN)
-        function filterTabel() {
-            const input = document.getElementById("cariBuku").value.toUpperCase();
-            const tr = document.getElementById("listBuku").getElementsByTagName("tr");
-            for (let i = 0; i < tr.length; i++) {
-                const text = tr[i].textContent || tr[i].innerText;
-                tr[i].style.display = text.toUpperCase().indexOf(input) > -1 ? "" : "none";
-            }
+        db.ref('koleksi_buku').on('value', snap => {
+            const tbody = document.getElementById('listBuku');
+            tbody.innerHTML = "";
+            listBukuGlobal = [];
+            let count = 0;
+            snap.forEach(s => {
+                const b = s.val();
+                listBukuGlobal.push(b);
+                count++;
+                tbody.innerHTML += `
+                    <tr class="border-b border-slate-50">
+                        <td class="p-4">
+                            <span class="text-[8px] font-black text-orange-500 block">${b.isbn}</span>
+                            <span class="uppercase">${b.judul}</span>
+                        </td>
+                        <td class="p-4 text-center">
+                            <span class="bg-white px-2 py-1 rounded-lg border border-slate-100">${b.stok_tersedia} / ${b.stok_total}</span>
+                        </td>
+                        <td class="p-4 text-center flex justify-center gap-2">
+                            <button onclick="cetakSatu('${b.isbn}', '${b.judul}')" class="h-8 w-8 bg-indigo-50 text-indigo-500 rounded-full">🖨️</button>
+                            <button onclick="hapusBuku('${b.isbn}')" class="h-8 w-8 bg-red-50 text-red-400 rounded-full">🗑️</button>
+                        </td>
+                    </tr>`;
+            });
+            document.getElementById('counterBuku').innerText = count + " Judul";
+        });
+
+        function cetakSatu(id, jdl) {
+            document.getElementById('isbn').value = id;
+            document.getElementById('judul').value = jdl;
+            buatQrLangsung();
         }
 
         function resetForm() {
@@ -171,60 +240,28 @@
             document.getElementById('infoStok').classList.add('hidden');
         }
 
-        // 4. RENDER TABEL (REAL-TIME)
-        db.ref('koleksi_buku').on('value', snap => {
-            const list = document.getElementById('listBuku');
-            list.innerHTML = "";
-            let count = 0;
-            snap.forEach(s => {
-                const b = s.val(); count++;
-                list.innerHTML += `
-                    <tr class="border-b border-slate-50 hover:bg-orange-50/50 transition-colors">
-                        <td class="p-4">
-                            <span class="text-[8px] font-black text-orange-500 block leading-none mb-1 tracking-widest">${b.isbn}</span>
-                            <span class="uppercase text-slate-700">${b.judul}</span>
-                        </td>
-                        <td class="p-4 text-center">
-                            <span class="bg-white border border-slate-100 px-2 py-1 rounded-lg shadow-sm">
-                                <span class="${b.stok_tersedia < 1 ? 'text-red-500':'text-emerald-600'}">${b.stok_tersedia}</span> 
-                                <span class="text-slate-300 mx-1">/</span> 
-                                <span class="text-slate-500">${b.stok_total}</span>
-                            </span>
-                        </td>
-                        <td class="p-4 text-center">
-                            <button onclick="hapusBuku('${b.isbn}')" class="h-8 w-8 bg-red-50 text-red-400 rounded-full hover:bg-red-500 hover:text-white transition-all text-[10px]">🗑️</button>
-                        </td>
-                    </tr>`;
-            });
-            document.getElementById('counterBuku').innerText = count + " Judul Koleksi";
-        });
-
-        function hapusBuku(id) {
-            if(confirm('Hapus buku ini?')) db.ref('koleksi_buku/' + id).remove();
-        }
-
-        // 5. SCANNER HANDLER
-        let scannerInstance = null;
-        async function bukaScanner() {
-            document.getElementById('scannerArea').classList.remove('hidden');
-            scannerInstance = new Html5Qrcode("reader");
-            scannerInstance.start({ facingMode: "environment" }, { fps: 20, qrbox: 250 }, 
-            (decodedText) => {
-                const code = decodedText.trim();
-                document.getElementById('isbn').value = code;
-                cekBukuEksis(code);
-                tutupScanner();
-                new Audio('https://www.soundjay.com/buttons/beep-07.mp3').play().catch(()=>{});
-            });
-        }
-
-        function tutupScanner() {
-            if (scannerInstance) {
-                scannerInstance.stop().then(() => {
-                    document.getElementById('scannerArea').classList.add('hidden');
-                });
+        function filterTabel() {
+            const input = document.getElementById("cariBuku").value.toUpperCase();
+            const tr = document.getElementById("listBuku").getElementsByTagName("tr");
+            for (let i = 0; i < tr.length; i++) {
+                const txt = tr[i].textContent || tr[i].innerText;
+                tr[i].style.display = txt.toUpperCase().indexOf(input) > -1 ? "" : "none";
             }
         }
+
+        function hapusBuku(id) { if(confirm('Hapus?')) db.ref('koleksi_buku/' + id).remove(); }
+
+        let scanner = null;
+        function bukaScanner() {
+            document.getElementById('scannerArea').classList.remove('hidden');
+            scanner = new Html5Qrcode("reader");
+            scanner.start({ facingMode: "environment" }, { fps: 20, qrbox: 250 }, (txt) => {
+                document.getElementById('isbn').value = txt.trim();
+                cekBukuEksis(txt.trim());
+                tutupScanner();
+            });
+        }
+        function tutupScanner() { if(scanner) scanner.stop().then(() => document.getElementById('scannerArea').classList.add('hidden')); }
     </script>
 </body>
 </html>
