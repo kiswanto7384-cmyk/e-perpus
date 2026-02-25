@@ -13,7 +13,7 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        /* Layout Cetak Kolektif */
+        /* Area Cetak Kolektif */
         #areaCetakKolektif { display: none; }
         
         @media print {
@@ -60,9 +60,12 @@
         <div class="bg-orange-600 text-white p-6 rounded-[2.5rem] shadow-xl mb-6 border-b-8 border-orange-800 flex justify-between items-center">
             <div>
                 <h1 class="text-xl font-black uppercase italic leading-none">Manajemen Buku 📖</h1>
-                <p class="text-[9px] font-bold opacity-80 uppercase tracking-widest mt-2 italic text-orange-100">Cetak Label QR Kolektif Aktif</p>
+                <p class="text-[9px] font-bold opacity-80 uppercase tracking-widest mt-2 italic text-orange-100">Cetak Label Pilihan & Kolektif</p>
             </div>
-            <button onclick="siapkanCetakKolektif()" class="bg-white text-orange-600 px-4 py-2 rounded-2xl font-black text-[10px] uppercase shadow-lg hover:scale-105 transition-all">🖨️ Cetak Kolektif</button>
+            <div class="flex flex-col gap-2">
+                <button onclick="siapkanCetakTerpilih()" class="bg-white text-indigo-600 px-4 py-2 rounded-xl font-black text-[9px] uppercase shadow-lg hover:bg-indigo-50 transition-all">🖨️ Cetak Pilihan</button>
+                <button onclick="siapkanCetakKolektif()" class="bg-orange-400 text-white px-4 py-2 rounded-xl font-black text-[9px] uppercase shadow-lg hover:bg-orange-500 transition-all">🖨️ Cetak Semua</button>
+            </div>
         </div>
 
         <div id="scannerArea" class="hidden mb-6 rounded-[2.5rem] overflow-hidden border-4 border-orange-500 bg-black relative shadow-2xl">
@@ -99,7 +102,10 @@
         <div class="bg-white rounded-[2rem] shadow-sm overflow-hidden border border-slate-200">
             <div class="p-4 border-b border-slate-100 bg-slate-50 space-y-3">
                 <div class="flex justify-between items-center">
-                    <h2 class="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Daftar Koleksi</h2>
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="checkAll" onclick="toggleSemua(this)" class="w-4 h-4 rounded">
+                        <h2 class="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Pilih Semua</h2>
+                    </div>
                     <span id="counterBuku" class="text-[9px] bg-white border border-slate-200 px-3 py-1 rounded-full font-bold text-slate-500 italic">0 Buku</span>
                 </div>
                 <div class="relative">
@@ -112,6 +118,7 @@
                 <table class="w-full text-left" id="tabelKoleksi">
                     <thead class="bg-slate-50 text-[9px] uppercase font-black text-slate-400 border-b border-slate-100">
                         <tr>
+                            <th class="p-4 w-10">Pilih</th>
                             <th class="p-4">Informasi Buku</th>
                             <th class="p-4 text-center">Sisa/Total</th>
                             <th class="p-4 text-center">Aksi</th>
@@ -130,11 +137,44 @@
 
         let listBukuGlobal = [];
 
-        // --- FUNGSI CETAK KOLEKTIF (BARU) ---
+        // --- FUNGSI PILIH SEMUA ---
+        function toggleSemua(source) {
+            const checkboxes = document.getElementsByName('pilihBuku');
+            for(let i=0, n=checkboxes.length; i<n; i++) {
+                checkboxes[i].checked = source.checked;
+            }
+        }
+
+        // --- FUNGSI CETAK TERPILIH (BARU) ---
+        function siapkanCetakTerpilih() {
+            const area = document.getElementById('areaCetakKolektif');
+            area.innerHTML = "";
+            const checkboxes = document.getElementsByName('pilihBuku');
+            let adaPilihan = false;
+
+            checkboxes.forEach((cb) => {
+                if(cb.checked) {
+                    adaPilihan = true;
+                    const data = JSON.parse(cb.value);
+                    const index = Math.random().toString(36).substr(2, 9);
+                    
+                    const divItem = document.createElement('div');
+                    divItem.className = "item-qr-cetak";
+                    divItem.innerHTML = `<div id="qr-pilih-${index}" class="flex justify-center"></div><p style="font-size: 8px; font-weight: bold; margin-top: 5px;">${data.isbn}<br>${data.judul.substring(0, 15)}</p>`;
+                    area.appendChild(divItem);
+
+                    new QRCode(document.getElementById(`qr-pilih-${index}`), { text: data.isbn, width: 70, height: 70 });
+                }
+            });
+
+            if(!adaPilihan) return alert("Pilih minimal satu buku lewat ceklist!");
+            setTimeout(() => { window.print(); }, 1000);
+        }
+
+        // --- FUNGSI CETAK KOLEKTIF SEMUA (TETAP) ---
         function siapkanCetakKolektif() {
             const area = document.getElementById('areaCetakKolektif');
             area.innerHTML = "";
-            
             if(listBukuGlobal.length === 0) return alert("Belum ada data buku.");
 
             listBukuGlobal.forEach((b, index) => {
@@ -142,14 +182,8 @@
                 divItem.className = "item-qr-cetak";
                 divItem.innerHTML = `<div id="qr-kolektif-${index}" class="flex justify-center"></div><p style="font-size: 8px; font-weight: bold; margin-top: 5px;">${b.isbn}<br>${b.judul.substring(0, 15)}</p>`;
                 area.appendChild(divItem);
-
-                new QRCode(document.getElementById(`qr-kolektif-${index}`), {
-                    text: b.isbn,
-                    width: 70,
-                    height: 70
-                });
+                new QRCode(document.getElementById(`qr-kolektif-${index}`), { text: b.isbn, width: 70, height: 70 });
             });
-
             setTimeout(() => { window.print(); }, 1000);
         }
 
@@ -158,15 +192,13 @@
             const isbn = document.getElementById('isbn').value;
             const judul = document.getElementById('judul').value;
             if(!isbn) return alert("Isi kode buku!");
-            
             const area = document.getElementById('areaCetakKolektif');
             area.innerHTML = `<div class="item-qr-cetak"><div id="qr-single" class="flex justify-center"></div><p style="font-size: 10px; font-weight: bold; margin-top: 5px;">${isbn}<br>${judul}</p></div>`;
-            
             new QRCode(document.getElementById("qr-single"), { text: isbn, width: 100, height: 100 });
             setTimeout(() => { window.print(); }, 500);
         }
 
-        // --- LOGIKA DATABASE (TETAP) ---
+        // --- LOGIKA DATABASE ---
         function cekBukuEksis(id) {
             if(!id) return;
             db.ref('koleksi_buku/' + id).once('value', snap => {
@@ -185,7 +217,6 @@
             const id = document.getElementById('isbn').value.trim();
             const jdl = document.getElementById('judul').value.trim().toUpperCase();
             const inputStok = parseInt(document.getElementById('stok').value);
-
             if(!id || !jdl || isNaN(inputStok)) return alert("Data tidak lengkap!");
 
             db.ref('koleksi_buku/' + id).transaction((currentData) => {
@@ -211,6 +242,9 @@
                 count++;
                 tbody.innerHTML += `
                     <tr class="border-b border-slate-50">
+                        <td class="p-4 text-center">
+                            <input type="checkbox" name="pilihBuku" value='${JSON.stringify(b)}' class="w-4 h-4 rounded">
+                        </td>
                         <td class="p-4">
                             <span class="text-[8px] font-black text-orange-500 block">${b.isbn}</span>
                             <span class="uppercase">${b.judul}</span>
