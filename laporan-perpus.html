@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Laporan - E-Perpus</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-100 min-h-screen pb-10 font-sans">
+
+    <div class="max-w-5xl mx-auto p-4">
+        <div class="bg-gradient-to-r from-indigo-700 to-blue-600 p-8 rounded-[2.5rem] text-white shadow-xl mb-6 border-b-8 border-indigo-900">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-black italic uppercase tracking-tighter text-yellow-400">Statistik Perpus 📊</h1>
+                    <p class="text-xs font-bold opacity-80 uppercase tracking-widest mt-1">Analisis Kunjungan & Sirkulasi Realtime</p>
+                </div>
+                <a href="menu-perpus.html" class="bg-white/20 hover:bg-white/30 p-3 rounded-2xl backdrop-blur-md transition-all">
+                    <span class="text-sm font-black uppercase">🏠 Dashboard</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200">
+                <div class="flex items-center gap-3 mb-6">
+                    <span class="text-2xl">🏫</span>
+                    <h2 class="font-black uppercase text-slate-700 text-sm tracking-tight">Kunjungan Per Kelas</h2>
+                </div>
+                <canvas id="chartKelas" height="250"></canvas>
+            </div>
+
+            <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200">
+                <div class="flex items-center gap-3 mb-6">
+                    <span class="text-2xl">📈</span>
+                    <h2 class="font-black uppercase text-slate-700 text-sm tracking-tight">Tren Pinjam & Kembali</h2>
+                </div>
+                <canvas id="chartSirkulasi" height="250"></canvas>
+            </div>
+
+        </div>
+
+        <div class="mt-8 bg-white rounded-[2rem] shadow-sm overflow-hidden border border-slate-200">
+            <div class="p-5 bg-slate-50 border-b border-slate-100">
+                <h3 class="font-black uppercase text-slate-500 text-[10px] tracking-[0.3em]">Ringkasan Data Terakhir</h3>
+            </div>
+            <div class="grid grid-cols-3 divide-x divide-slate-100 text-center p-6">
+                <div>
+                    <p class="text-[10px] font-black text-slate-400 uppercase">Total Sirkulasi</p>
+                    <p id="statTotal" class="text-2xl font-black text-indigo-600">0</p>
+                </div>
+                <div>
+                    <p class="text-[10px] font-black text-slate-400 uppercase">Aktif Dipinjam</p>
+                    <p id="statPinjam" class="text-2xl font-black text-orange-500">0</p>
+                </div>
+                <div>
+                    <p class="text-[10px] font-black text-slate-400 uppercase">Selesai</p>
+                    <p id="statKembali" class="text-2xl font-black text-emerald-500">0</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIG FIREBASE
+        const firebaseConfig = { databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app" };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Inisialisasi Chart
+        let chartKelas, chartSirkulasi;
+
+        function initCharts() {
+            // Chart Kelas
+            const ctxKelas = document.getElementById('chartKelas').getContext('2d');
+            chartKelas = new Chart(ctxKelas, {
+                type: 'bar',
+                data: { labels: [], datasets: [{ label: 'Jumlah Siswa', data: [], backgroundColor: '#6366f1', borderRadius: 10 }] },
+                options: { responsive: true, plugins: { legend: { display: false } } }
+            });
+
+            // Chart Sirkulasi
+            const ctxSirkulasi = document.getElementById('chartSirkulasi').getContext('2d');
+            chartSirkulasi = new Chart(ctxSirkulasi, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        { label: 'Pinjam', data: [], borderColor: '#f97316', tension: 0.4, fill: true, backgroundColor: 'rgba(249, 115, 22, 0.1)' },
+                        { label: 'Kembali', data: [], borderColor: '#10b981', tension: 0.4, fill: true, backgroundColor: 'rgba(16, 185, 129, 0.1)' }
+                    ]
+                },
+                options: { responsive: true, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+            });
+        }
+
+        function ambilData() {
+            db.ref('perpus_laporan').on('value', snap => {
+                const data = snap.val();
+                if (!data) return;
+
+                const kunjunganPerKelas = {};
+                const sirkulasiHarian = {};
+                let aktif = 0, selesai = 0, total = 0;
+
+                Object.values(data).forEach(item => {
+                    total++;
+                    // Data Kelas
+                    const kls = item.kelas || "Tanpa Kelas";
+                    kunjunganPerKelas[kls] = (kunjunganPerKelas[kls] || 0) + 1;
+
+                    // Data Harian (Format: Tgl/Bln/Thn)
+                    const tgl = item.waktuPinjam ? item.waktuPinjam.split(',')[0] : "Lama";
+                    if (!sirkulasiHarian[tgl]) sirkulasiHarian[tgl] = { pinjam: 0, kembali: 0 };
+                    
+                    if (item.status === "DIPINJAM") {
+                        aktif++;
+                        sirkulasiHarian[tgl].pinjam++;
+                    } else {
+                        selesai++;
+                        sirkulasiHarian[tgl].kembali++;
+                    }
+                });
+
+                updateChartKelas(kunjunganPerKelas);
+                updateChartSirkulasi(sirkulasiHarian);
+                
+                document.getElementById('statTotal').innerText = total;
+                document.getElementById('statPinjam').innerText = aktif;
+                document.getElementById('statKembali').innerText = selesai;
+            });
+        }
+
+        function updateChartKelas(obj) {
+            chartKelas.data.labels = Object.keys(obj);
+            chartKelas.data.datasets[0].data = Object.values(obj);
+            chartKelas.update();
+        }
+
+        function updateChartSirkulasi(obj) {
+            const labelTgl = Object.keys(obj).slice(-7); // Ambil 7 hari terakhir
+            chartSirkulasi.data.labels = labelTgl;
+            chartSirkulasi.data.datasets[0].data = labelTgl.map(t => obj[t].pinjam);
+            chartSirkulasi.data.datasets[1].data = labelTgl.map(t => obj[t].kembali);
+            chartSirkulasi.update();
+        }
+
+        window.onload = () => {
+            initCharts();
+            ambilData();
+        };
+    </script>
+</body>
+</html>
