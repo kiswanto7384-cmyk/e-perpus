@@ -12,29 +12,12 @@
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        /* Area Cetak Kolektif */
         #areaCetakKolektif { display: none; }
-        
         @media print {
             body * { visibility: hidden; }
             #areaCetakKolektif, #areaCetakKolektif * { visibility: visible; }
-            #areaCetakKolektif { 
-                display: grid !important; 
-                grid-template-columns: repeat(4, 1fr); 
-                gap: 15px; 
-                position: absolute; 
-                left: 0; 
-                top: 0; 
-                width: 100%;
-                padding: 10px;
-            }
-            .item-qr-cetak { 
-                border: 1px solid #ccc; 
-                padding: 10px; 
-                text-align: center; 
-                page-break-inside: avoid;
-            }
+            #areaCetakKolektif { display: grid !important; grid-template-columns: repeat(4, 1fr); gap: 15px; position: absolute; left: 0; top: 0; width: 100%; padding: 10px; }
+            .item-qr-cetak { border: 1px solid #ccc; padding: 10px; text-align: center; page-break-inside: avoid; }
         }
     </style>
 </head>
@@ -68,6 +51,10 @@
             </div>
         </div>
 
+        <div id="statusScanner" class="mb-4 text-center hidden">
+            <span class="bg-emerald-100 text-emerald-600 text-[8px] font-black px-4 py-1 rounded-full uppercase animate-pulse">Ready for External Scanner 🔌</span>
+        </div>
+
         <div id="scannerArea" class="hidden mb-6 rounded-[2.5rem] overflow-hidden border-4 border-orange-500 bg-black relative shadow-2xl">
             <div id="reader" style="width: 100%; min-height: 300px;"></div>
             <button onclick="tutupScanner()" class="w-full bg-red-600 text-white py-4 font-black text-xs uppercase tracking-widest">Tutup Kamera ❌</button>
@@ -75,7 +62,7 @@
 
         <div class="bg-white p-6 rounded-[2.5rem] shadow-sm mb-8 border-2 border-orange-100 space-y-4">
             <div class="relative">
-                <label class="text-[8px] font-black text-slate-400 ml-3 uppercase italic">Barcode / Kode Buku</label>
+                <label class="text-[8px] font-black text-slate-400 ml-3 uppercase italic">Barcode / Kode Buku (External Scan Ready)</label>
                 <input type="text" id="isbn" oninput="cekBukuEksis(this.value)" placeholder="SCAN ATAU KETIK KODE..." class="w-full p-4 bg-slate-50 rounded-2xl font-black outline-none border-2 border-transparent focus:border-orange-500 uppercase text-sm tracking-widest transition-all">
                 <div class="absolute right-2 top-[22px] flex gap-1">
                     <button onclick="buatQrLangsung()" class="bg-indigo-500 text-white px-3 rounded-xl font-black text-[9px] hover:bg-indigo-600 transition-all uppercase">Buat QR 🖼️</button>
@@ -137,7 +124,31 @@
 
         let listBukuGlobal = [];
 
-        // --- FUNGSI PILIH SEMUA ---
+        // LOGIKA SCANNER EKSTERNAL (MODERN)
+        let scanBuffer = "";
+        window.addEventListener("keypress", (e) => {
+            const statusIndicator = document.getElementById('statusScanner');
+            const inputISBN = document.getElementById('isbn');
+            
+            // Jika enter ditekan (ciri khas scanner eksternal)
+            if (e.key === "Enter") {
+                if (scanBuffer.length > 2) {
+                    inputISBN.value = scanBuffer.trim();
+                    cekBukuEksis(scanBuffer.trim());
+                    inputISBN.focus();
+                    scanBuffer = "";
+                }
+            } else {
+                scanBuffer += e.key;
+            }
+
+            // Bersihkan buffer jika tidak ada input lanjut dalam 100ms
+            setTimeout(() => { scanBuffer = ""; }, 200);
+        });
+
+        // Auto Focus ke input ISBN saat halaman dibuka
+        window.onload = () => { document.getElementById('isbn').focus(); };
+
         function toggleSemua(source) {
             const checkboxes = document.getElementsByName('pilihBuku');
             for(let i=0, n=checkboxes.length; i<n; i++) {
@@ -145,7 +156,6 @@
             }
         }
 
-        // --- FUNGSI CETAK TERPILIH (BARU) ---
         function siapkanCetakTerpilih() {
             const area = document.getElementById('areaCetakKolektif');
             area.innerHTML = "";
@@ -157,12 +167,10 @@
                     adaPilihan = true;
                     const data = JSON.parse(cb.value);
                     const index = Math.random().toString(36).substr(2, 9);
-                    
                     const divItem = document.createElement('div');
                     divItem.className = "item-qr-cetak";
                     divItem.innerHTML = `<div id="qr-pilih-${index}" class="flex justify-center"></div><p style="font-size: 8px; font-weight: bold; margin-top: 5px;">${data.isbn}<br>${data.judul.substring(0, 15)}</p>`;
                     area.appendChild(divItem);
-
                     new QRCode(document.getElementById(`qr-pilih-${index}`), { text: data.isbn, width: 70, height: 70 });
                 }
             });
@@ -171,12 +179,10 @@
             setTimeout(() => { window.print(); }, 1000);
         }
 
-        // --- FUNGSI CETAK KOLEKTIF SEMUA (TETAP) ---
         function siapkanCetakKolektif() {
             const area = document.getElementById('areaCetakKolektif');
             area.innerHTML = "";
             if(listBukuGlobal.length === 0) return alert("Belum ada data buku.");
-
             listBukuGlobal.forEach((b, index) => {
                 const divItem = document.createElement('div');
                 divItem.className = "item-qr-cetak";
@@ -187,7 +193,6 @@
             setTimeout(() => { window.print(); }, 1000);
         }
 
-        // --- FUNGSI QR PER BUKU ---
         function buatQrLangsung() {
             const isbn = document.getElementById('isbn').value;
             const judul = document.getElementById('judul').value;
@@ -198,7 +203,6 @@
             setTimeout(() => { window.print(); }, 500);
         }
 
-        // --- LOGIKA DATABASE ---
         function cekBukuEksis(id) {
             if(!id) return;
             db.ref('koleksi_buku/' + id).once('value', snap => {
@@ -241,7 +245,7 @@
                 listBukuGlobal.push(b);
                 count++;
                 tbody.innerHTML += `
-                    <tr class="border-b border-slate-50">
+                    <tr class="border-b border-slate-50 hover:bg-slate-50 transition-all">
                         <td class="p-4 text-center">
                             <input type="checkbox" name="pilihBuku" value='${JSON.stringify(b)}' class="w-4 h-4 rounded">
                         </td>
@@ -272,6 +276,7 @@
             document.getElementById('judul').value = "";
             document.getElementById('stok').value = "";
             document.getElementById('infoStok').classList.add('hidden');
+            document.getElementById('isbn').focus();
         }
 
         function filterTabel() {
