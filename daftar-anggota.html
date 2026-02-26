@@ -12,6 +12,10 @@
         .toast-notif { animation: slideUp 0.5s ease-out; }
         @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .input-focus:focus { border-color: #4f46e5; box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1); }
+        /* Style Saklar Mode */
+        .dot { transition: all 0.3s ease-in-out; }
+        input:checked ~ .dot { transform: translateX(100%); background-color: #4f46e5; }
+        input:checked ~ .block-bg { background-color: #e0e7ff; border-color: #c7d2fe; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen pb-20">
@@ -28,24 +32,40 @@
 
     <main class="max-w-4xl mx-auto px-6 -mt-12 relative z-20">
         
+        <div class="flex items-center justify-center mb-6 gap-4 bg-white p-4 rounded-3xl border border-slate-200 shadow-xl">
+            <span class="text-[10px] font-black uppercase text-slate-400 italic">Mode Input:</span>
+            <label class="flex items-center cursor-pointer select-none">
+                <div class="relative">
+                    <input type="checkbox" id="modeScannerEksternal" class="sr-only" onchange="toggleScannerMode(this.checked)">
+                    <div class="block-bg bg-slate-100 border-2 border-slate-200 w-14 h-8 rounded-full transition-all"></div>
+                    <div class="dot absolute left-1 top-1 bg-slate-400 w-6 h-6 rounded-full transition-all flex items-center justify-center text-[10px]">📷</div>
+                </div>
+                <div class="ml-3 text-[10px] font-black uppercase text-slate-600 tracking-wider" id="labelMode">Scan Kamera</div>
+            </label>
+        </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <div class="bg-white p-6 rounded-[2.5rem] shadow-xl border-t-8 border-indigo-500">
-                <h2 class="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest italic text-center">Scan Kartu Siswa</h2>
+            <div id="panelScanner" class="bg-white p-6 rounded-[2.5rem] shadow-xl border-t-8 border-indigo-500">
+                <h2 class="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest italic text-center">Scanner Area</h2>
                 <div id="reader" class="rounded-3xl overflow-hidden border-4 border-slate-100 shadow-inner"></div>
+                <div id="statusEksternal" class="hidden py-10 text-center">
+                    <div class="text-5xl mb-4">🔌</div>
+                    <p class="text-[10px] font-black uppercase text-indigo-600 animate-pulse">Alat Scanner Aktif<br>Silakan Tembak Kartu</p>
+                </div>
             </div>
 
             <div class="bg-white p-6 rounded-[2.5rem] shadow-xl border-t-8 border-yellow-400">
                 <h2 class="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest italic text-center">Data Registrasi</h2>
                 
                 <div class="space-y-4">
-                    <div class="bg-slate-50 p-4 rounded-2xl border-2 border-slate-100">
-                        <label class="text-[9px] font-black text-slate-400 uppercase ml-1">ID Terdeteksi</label>
-                        <input type="text" id="nisn" readonly class="w-full bg-transparent text-lg font-black text-indigo-900 outline-none" placeholder="Menunggu Scan...">
+                    <div class="bg-slate-50 p-4 rounded-2xl border-2 border-slate-100 focus-within:border-indigo-500 transition-all">
+                        <label class="text-[9px] font-black text-slate-400 uppercase ml-1">ID / NISN</label>
+                        <input type="text" id="nisn" oninput="cariDataSiswa(this.value.trim())" class="w-full bg-transparent text-lg font-black text-indigo-900 outline-none uppercase" placeholder="SCAN KARTU...">
                     </div>
 
                     <div>
                         <label class="text-[9px] font-black text-slate-400 uppercase ml-1">Nama Lengkap</label>
-                        <input type="text" id="nama" placeholder="Ketik Nama Jika Tidak Muncul" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-3 text-sm font-bold outline-none input-focus transition-all uppercase">
+                        <input type="text" id="nama" placeholder="Ketik Nama" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-3 text-sm font-bold outline-none input-focus transition-all uppercase">
                     </div>
 
                     <div>
@@ -113,19 +133,74 @@
     <div id="toastContainer" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 pointer-events-none"></div>
 
     <script>
-        const firebaseConfig = {
-            databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app"
-        };
+        const firebaseConfig = { databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app" };
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
         let dataAnggotaGlobal = [];
-        let scanner = new Html5Qrcode("reader");
+        let html5QrCode = null;
+        let isExternalMode = false;
 
-        // START SCANNER
-        scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (id) => {
-            cariDataSiswa(id.trim());
-        }).catch(err => console.error(err));
+        // --- MANAJEMEN MODE SCANNER ---
+        function toggleScannerMode(checked) {
+            isExternalMode = checked;
+            const label = document.getElementById('labelMode');
+            const dot = document.querySelector('.dot');
+            const readerDiv = document.getElementById('reader');
+            const statusEksternal = document.getElementById('statusEksternal');
+            const inputNisn = document.getElementById('nisn');
+
+            if (checked) {
+                label.innerText = "Mode Alat Scanner (USB)";
+                label.className = "ml-3 text-[10px] font-black uppercase text-indigo-600 tracking-wider";
+                dot.innerText = "🔌";
+                statusEksternal.classList.remove('hidden');
+                readerDiv.classList.add('hidden');
+                stopCamera();
+                inputNisn.focus();
+            } else {
+                label.innerText = "Scan Kamera";
+                label.className = "ml-3 text-[10px] font-black uppercase text-slate-600 tracking-wider";
+                dot.innerText = "📷";
+                statusEksternal.classList.add('hidden');
+                readerDiv.classList.remove('hidden');
+                startCamera();
+            }
+        }
+
+        // --- SISTEM KAMERA ---
+        function startCamera() {
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (id) => {
+                cariDataSiswa(id.trim());
+            }).catch(err => console.log("Kamera belum aktif"));
+        }
+
+        function stopCamera() {
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => html5QrCode = null).catch(err => console.log(err));
+            }
+        }
+
+        // Jalankan Kamera di awal
+        window.onload = () => { startCamera(); };
+
+        // --- LOGIKA ALAT SCANNER (ENTER DETECT) ---
+        document.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter' && isExternalMode) {
+                const activeEl = document.activeElement;
+                if (activeEl.id === 'nisn' && activeEl.value !== "") {
+                    // Jika data sudah diisi otomatis oleh cariDataSiswa, pindah fokus
+                    setTimeout(() => {
+                        if(document.getElementById('nama').value === "") {
+                            document.getElementById('nama').focus();
+                        } else {
+                            document.getElementById('btnSimpan').focus();
+                        }
+                    }, 500);
+                }
+            }
+        });
 
         function showToast(pesan, warna = "bg-indigo-600") {
             const container = document.getElementById('toastContainer');
@@ -136,24 +211,20 @@
             setTimeout(() => toast.remove(), 3000);
         }
 
-        // FUNGSI CARI DATA DENGAN AUTO-FILL ATAU MANUAL INPUT
         function cariDataSiswa(id) {
+            if(!id) return;
             document.getElementById('nisn').value = id;
             document.getElementById('infoStatus').innerText = "MENGECEK DATA...";
             
-            // 1. Cek di kantin_users
             db.ref('kantin_users/' + id).once('value', snapKantin => {
                 if(snapKantin.exists()) {
                     setFormValues(id, snapKantin.val().nama, snapKantin.val().kelas, "✅ DATA DITEMUKAN (KANTIN)");
                 } else {
-                    // 2. Cek di users
                     db.ref('users/' + id).once('value', snapUsers => {
                         if(snapUsers.exists()) {
                             setFormValues(id, snapUsers.val().nama, snapUsers.val().kelas, "✅ DATA DITEMUKAN (USERS)");
                         } else {
-                            // 3. Jika TIDAK ADA, kosongkan nama & kelas supaya bisa diisi manual
-                            setFormValues(id, "", "", "⚠️ ID BARU: LENGKAPI NAMA & KELAS");
-                            document.getElementById('nama').focus();
+                            setFormValues(id, "", "", "⚠️ ID BARU: LENGKAPI NAMA");
                         }
                     });
                 }
@@ -167,26 +238,29 @@
             
             const btn = document.getElementById('btnSimpan');
             btn.disabled = false;
-            btn.className = "w-full bg-emerald-500 text-white py-5 rounded-2xl font-black uppercase italic shadow-lg shadow-emerald-200 scale-105 transition-all mt-2";
+            btn.className = "w-full bg-emerald-500 text-white py-5 rounded-2xl font-black uppercase italic shadow-lg shadow-emerald-200 scale-100 hover:scale-105 transition-all mt-2";
             
             if(status.includes("DITEMUKAN")) {
                 document.getElementById('infoStatus').className = "text-[8px] font-black px-3 py-1 bg-emerald-100 text-emerald-600 rounded-full uppercase italic";
-                showToast("DATA DITEMUKAN", "bg-emerald-500");
+                new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3').play().catch(()=>{});
             } else {
                 document.getElementById('infoStatus').className = "text-[8px] font-black px-3 py-1 bg-orange-100 text-orange-600 rounded-full uppercase italic";
-                showToast("ID BARU TERDETEKSI", "bg-orange-500");
             }
         }
 
         function simpanAnggota() {
-            const nisn = document.getElementById('nisn').value;
-            const nama = document.getElementById('nama').value.toUpperCase();
+            const nisn = document.getElementById('nisn').value.trim();
+            const nama = document.getElementById('nama').value.toUpperCase().trim();
             const kelas = document.getElementById('kelas').value;
 
             if(!nisn || !nama || !kelas) {
-                alert("Mohon lengkapi ID, Nama, dan Kelas!");
+                alert("Lengkapi Data!");
                 return;
             }
+
+            const btn = document.getElementById('btnSimpan');
+            btn.innerText = "MEMPROSES...";
+            btn.disabled = true;
 
             const dataSiswa = {
                 id: nisn,
@@ -198,12 +272,29 @@
             };
 
             db.ref('anggota_perpus/' + nisn).update(dataSiswa).then(() => {
-                showToast("MEMBER BERHASIL DIAKTIFKAN!");
-                setTimeout(() => location.reload(), 1000);
+                showToast("MEMBER BERHASIL DIAKTIFKAN!", "bg-emerald-600");
+                resetForm();
+            }).catch(err => {
+                alert("Gagal: " + err.message);
+                btn.disabled = false;
+                btn.innerText = "AKTIFKAN KEANGGOTAAN ✅";
             });
         }
 
-        // FUNGSI LOAD TABEL (MENU ASLI)
+        function resetForm() {
+            document.getElementById('nisn').value = "";
+            document.getElementById('nama').value = "";
+            document.getElementById('kelas').value = "";
+            document.getElementById('infoStatus').innerText = "Silakan Scan Kartu";
+            document.getElementById('infoStatus').className = "text-[8px] font-black px-3 py-1 bg-slate-100 text-slate-400 rounded-full uppercase italic";
+            const btn = document.getElementById('btnSimpan');
+            btn.disabled = true;
+            btn.innerText = "AKTIFKAN KEANGGOTAAN ✅";
+            btn.className = "w-full bg-slate-200 text-slate-400 py-5 rounded-2xl font-black uppercase italic shadow-lg cursor-not-allowed transition-all mt-2";
+            if(isExternalMode) document.getElementById('nisn').focus();
+        }
+
+        // --- LOAD DATA TABEL ---
         db.ref('anggota_perpus').on('value', snap => {
             dataAnggotaGlobal = [];
             snap.forEach(s => { dataAnggotaGlobal.push({ key: s.key, ...s.val() }); });
@@ -216,6 +307,9 @@
             const filter = document.getElementById('filterKelas').value;
             tbody.innerHTML = "";
             let filteredCount = 0;
+
+            // Sortir data terbaru di atas
+            dataAnggotaGlobal.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
             dataAnggotaGlobal.forEach(a => {
                 if (filter === "SEMUA" || a.kelas === filter) {
