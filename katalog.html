@@ -19,6 +19,10 @@
             #areaCetakKolektif { display: grid !important; grid-template-columns: repeat(4, 1fr); gap: 15px; position: absolute; left: 0; top: 0; width: 100%; padding: 10px; }
             .item-qr-cetak { border: 1px solid #ccc; padding: 10px; text-align: center; page-break-inside: avoid; }
         }
+        /* Style Saklar Mode */
+        .dot { transition: all 0.3s ease-in-out; }
+        input:checked ~ .dot { transform: translateX(100%); background-color: #f97316; }
+        input:checked ~ .block-bg { background-color: #ffedd5; border-color: #fdba74; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen pb-10">
@@ -51,8 +55,20 @@
             </div>
         </div>
 
+        <div class="flex items-center justify-center mb-6 gap-4 bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
+            <span class="text-[10px] font-black uppercase text-slate-400 italic">Mode Scan:</span>
+            <label class="flex items-center cursor-pointer select-none">
+                <div class="relative">
+                    <input type="checkbox" id="modeScannerEksternal" class="sr-only" onchange="toggleScannerMode(this.checked)">
+                    <div class="block-bg bg-slate-100 border-2 border-slate-200 w-14 h-8 rounded-full transition-all"></div>
+                    <div class="dot absolute left-1 top-1 bg-slate-400 w-6 h-6 rounded-full transition-all flex items-center justify-center text-[10px]">📷</div>
+                </div>
+                <div class="ml-3 text-[10px] font-black uppercase text-slate-600 tracking-wider" id="labelMode">Scan Kamera</div>
+            </label>
+        </div>
+
         <div id="statusScanner" class="mb-4 text-center hidden">
-            <span class="bg-emerald-100 text-emerald-600 text-[8px] font-black px-4 py-1 rounded-full uppercase animate-pulse">Ready for External Scanner 🔌</span>
+            <span class="bg-emerald-100 text-emerald-600 text-[8px] font-black px-4 py-1 rounded-full uppercase animate-pulse">External Scanner Aktif 🔌</span>
         </div>
 
         <div id="scannerArea" class="hidden mb-6 rounded-[2.5rem] overflow-hidden border-4 border-orange-500 bg-black relative shadow-2xl">
@@ -62,11 +78,11 @@
 
         <div class="bg-white p-6 rounded-[2.5rem] shadow-sm mb-8 border-2 border-orange-100 space-y-4">
             <div class="relative">
-                <label class="text-[8px] font-black text-slate-400 ml-3 uppercase italic">Barcode / Kode Buku (External Scan Ready)</label>
+                <label class="text-[8px] font-black text-slate-400 ml-3 uppercase italic">Barcode / Kode Buku</label>
                 <input type="text" id="isbn" oninput="cekBukuEksis(this.value)" placeholder="SCAN ATAU KETIK KODE..." class="w-full p-4 bg-slate-50 rounded-2xl font-black outline-none border-2 border-transparent focus:border-orange-500 uppercase text-sm tracking-widest transition-all">
                 <div class="absolute right-2 top-[22px] flex gap-1">
                     <button onclick="buatQrLangsung()" class="bg-indigo-500 text-white px-3 rounded-xl font-black text-[9px] hover:bg-indigo-600 transition-all uppercase">Buat QR 🖼️</button>
-                    <button onclick="bukaScanner()" class="bg-orange-600 text-white px-3 rounded-xl font-black text-[9px] hover:bg-orange-700 transition-all flex items-center gap-1 uppercase">📷 SCAN</button>
+                    <button id="btnKamera" onclick="bukaScanner()" class="bg-orange-600 text-white px-3 rounded-xl font-black text-[9px] hover:bg-orange-700 transition-all flex items-center gap-1 uppercase">📷 SCAN</button>
                 </div>
             </div>
 
@@ -76,10 +92,10 @@
                     <input type="text" id="judul" placeholder="JUDUL LENGKAP" class="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-orange-500 uppercase text-xs">
                 </div>
                 <div>
-                    <label class="text-[8px] font-black text-slate-400 ml-3 uppercase italic">Jumlah Stok Tambahan</label>
+                    <label class="text-[8px] font-black text-slate-400 ml-3 uppercase italic">Stok Tambahan</label>
                     <div class="flex gap-2">
                         <input type="number" id="stok" placeholder="QTY" class="w-24 p-4 bg-slate-50 rounded-2xl font-black outline-none border-2 border-transparent focus:border-orange-500 text-center">
-                        <button onclick="simpanBuku()" class="flex-1 bg-emerald-500 text-white font-black rounded-2xl hover:bg-emerald-600 shadow-lg transition-all uppercase text-[10px]">Simpan Data 💾</button>
+                        <button onclick="simpanBuku()" class="flex-1 bg-emerald-500 text-white font-black rounded-2xl hover:bg-emerald-600 shadow-lg transition-all uppercase text-[10px]">Simpan 💾</button>
                     </div>
                 </div>
             </div>
@@ -100,7 +116,6 @@
                     <span class="absolute left-3 top-3">🔍</span>
                 </div>
             </div>
-            
             <div class="overflow-x-auto">
                 <table class="w-full text-left" id="tabelKoleksi">
                     <thead class="bg-slate-50 text-[9px] uppercase font-black text-slate-400 border-b border-slate-100">
@@ -123,86 +138,51 @@
         const db = firebase.database();
 
         let listBukuGlobal = [];
-
-        // LOGIKA SCANNER EKSTERNAL (MODERN)
+        let isExternalMode = false;
         let scanBuffer = "";
+
+        // TOGLE MODE SCANNER
+        function toggleScannerMode(checked) {
+            isExternalMode = checked;
+            const label = document.getElementById('labelMode');
+            const indicator = document.getElementById('statusScanner');
+            const dot = document.querySelector('.dot');
+            const btnKamera = document.getElementById('btnKamera');
+
+            if (checked) {
+                label.innerText = "Scan Eksternal (USB/BT)";
+                label.className = "ml-3 text-[10px] font-black uppercase text-orange-600 tracking-wider";
+                indicator.classList.remove('hidden');
+                dot.innerText = "🔌";
+                btnKamera.style.opacity = "0.5";
+                tutupScanner();
+                document.getElementById('isbn').focus();
+            } else {
+                label.innerText = "Scan Kamera";
+                label.className = "ml-3 text-[10px] font-black uppercase text-slate-600 tracking-wider";
+                indicator.classList.add('hidden');
+                dot.innerText = "📷";
+                btnKamera.style.opacity = "1";
+            }
+        }
+
+        // LISTENER EXTERNAL SCANNER
         window.addEventListener("keypress", (e) => {
-            const statusIndicator = document.getElementById('statusScanner');
-            const inputISBN = document.getElementById('isbn');
-            
-            // Jika enter ditekan (ciri khas scanner eksternal)
+            if (!isExternalMode) return;
             if (e.key === "Enter") {
-                if (scanBuffer.length > 2) {
-                    inputISBN.value = scanBuffer.trim();
-                    cekBukuEksis(scanBuffer.trim());
-                    inputISBN.focus();
+                if (scanBuffer.length > 1) {
+                    const code = scanBuffer.trim();
+                    document.getElementById('isbn').value = code;
+                    cekBukuEksis(code);
                     scanBuffer = "";
                 }
             } else {
                 scanBuffer += e.key;
             }
-
-            // Bersihkan buffer jika tidak ada input lanjut dalam 100ms
             setTimeout(() => { scanBuffer = ""; }, 200);
         });
 
-        // Auto Focus ke input ISBN saat halaman dibuka
-        window.onload = () => { document.getElementById('isbn').focus(); };
-
-        function toggleSemua(source) {
-            const checkboxes = document.getElementsByName('pilihBuku');
-            for(let i=0, n=checkboxes.length; i<n; i++) {
-                checkboxes[i].checked = source.checked;
-            }
-        }
-
-        function siapkanCetakTerpilih() {
-            const area = document.getElementById('areaCetakKolektif');
-            area.innerHTML = "";
-            const checkboxes = document.getElementsByName('pilihBuku');
-            let adaPilihan = false;
-
-            checkboxes.forEach((cb) => {
-                if(cb.checked) {
-                    adaPilihan = true;
-                    const data = JSON.parse(cb.value);
-                    const index = Math.random().toString(36).substr(2, 9);
-                    const divItem = document.createElement('div');
-                    divItem.className = "item-qr-cetak";
-                    divItem.innerHTML = `<div id="qr-pilih-${index}" class="flex justify-center"></div><p style="font-size: 8px; font-weight: bold; margin-top: 5px;">${data.isbn}<br>${data.judul.substring(0, 15)}</p>`;
-                    area.appendChild(divItem);
-                    new QRCode(document.getElementById(`qr-pilih-${index}`), { text: data.isbn, width: 70, height: 70 });
-                }
-            });
-
-            if(!adaPilihan) return alert("Pilih minimal satu buku lewat ceklist!");
-            setTimeout(() => { window.print(); }, 1000);
-        }
-
-        function siapkanCetakKolektif() {
-            const area = document.getElementById('areaCetakKolektif');
-            area.innerHTML = "";
-            if(listBukuGlobal.length === 0) return alert("Belum ada data buku.");
-            listBukuGlobal.forEach((b, index) => {
-                const divItem = document.createElement('div');
-                divItem.className = "item-qr-cetak";
-                divItem.innerHTML = `<div id="qr-kolektif-${index}" class="flex justify-center"></div><p style="font-size: 8px; font-weight: bold; margin-top: 5px;">${b.isbn}<br>${b.judul.substring(0, 15)}</p>`;
-                area.appendChild(divItem);
-                new QRCode(document.getElementById(`qr-kolektif-${index}`), { text: b.isbn, width: 70, height: 70 });
-            });
-            setTimeout(() => { window.print(); }, 1000);
-        }
-
-        function buatQrLangsung() {
-            const isbn = document.getElementById('isbn').value;
-            const judul = document.getElementById('judul').value;
-            if(!isbn) return alert("Isi kode buku!");
-            const area = document.getElementById('areaCetakKolektif');
-            area.innerHTML = `<div class="item-qr-cetak"><div id="qr-single" class="flex justify-center"></div><p style="font-size: 10px; font-weight: bold; margin-top: 5px;">${isbn}<br>${judul}</p></div>`;
-            new QRCode(document.getElementById("qr-single"), { text: isbn, width: 100, height: 100 });
-            setTimeout(() => { window.print(); }, 500);
-        }
-
+        // CORE FUNCTIONS
         function cekBukuEksis(id) {
             if(!id) return;
             db.ref('koleksi_buku/' + id).once('value', snap => {
@@ -221,41 +201,27 @@
             const id = document.getElementById('isbn').value.trim();
             const jdl = document.getElementById('judul').value.trim().toUpperCase();
             const inputStok = parseInt(document.getElementById('stok').value);
-            if(!id || !jdl || isNaN(inputStok)) return alert("Data tidak lengkap!");
+            if(!id || !jdl || isNaN(inputStok)) return alert("Lengkapi data!");
 
-            db.ref('koleksi_buku/' + id).transaction((currentData) => {
-                if (currentData === null) {
-                    return { isbn: id, judul: jdl, stok_total: inputStok, stok_tersedia: inputStok };
-                } else {
-                    currentData.stok_total = (parseInt(currentData.stok_total) || 0) + inputStok;
-                    currentData.stok_tersedia = (parseInt(currentData.stok_tersedia) || 0) + inputStok;
-                    currentData.judul = jdl;
-                    return currentData;
-                }
-            }, (err, committed) => { if(committed) { alert("Berhasil!"); resetForm(); } });
+            db.ref('koleksi_buku/' + id).transaction((curr) => {
+                if (!curr) return { isbn: id, judul: jdl, stok_total: inputStok, stok_tersedia: inputStok };
+                curr.stok_total = (curr.stok_total || 0) + inputStok;
+                curr.stok_tersedia = (curr.stok_tersedia || 0) + inputStok;
+                curr.judul = jdl;
+                return curr;
+            }, (err, comm) => { if(comm) { alert("Berhasil!"); resetForm(); } });
         }
 
         db.ref('koleksi_buku').on('value', snap => {
             const tbody = document.getElementById('listBuku');
-            tbody.innerHTML = "";
-            listBukuGlobal = [];
-            let count = 0;
+            tbody.innerHTML = ""; listBukuGlobal = []; let count = 0;
             snap.forEach(s => {
-                const b = s.val();
-                listBukuGlobal.push(b);
-                count++;
+                const b = s.val(); listBukuGlobal.push(b); count++;
                 tbody.innerHTML += `
-                    <tr class="border-b border-slate-50 hover:bg-slate-50 transition-all">
-                        <td class="p-4 text-center">
-                            <input type="checkbox" name="pilihBuku" value='${JSON.stringify(b)}' class="w-4 h-4 rounded">
-                        </td>
-                        <td class="p-4">
-                            <span class="text-[8px] font-black text-orange-500 block">${b.isbn}</span>
-                            <span class="uppercase">${b.judul}</span>
-                        </td>
-                        <td class="p-4 text-center">
-                            <span class="bg-white px-2 py-1 rounded-lg border border-slate-100">${b.stok_tersedia} / ${b.stok_total}</span>
-                        </td>
+                    <tr class="border-b border-slate-50 hover:bg-slate-50">
+                        <td class="p-4 text-center"><input type="checkbox" name="pilihBuku" value='${JSON.stringify(b)}' class="w-4 h-4 rounded"></td>
+                        <td class="p-4"><span class="text-[8px] font-black text-orange-500 block">${b.isbn}</span><span class="uppercase">${b.judul}</span></td>
+                        <td class="p-4 text-center"><span class="bg-white px-2 py-1 rounded-lg border border-slate-100">${b.stok_tersedia} / ${b.stok_total}</span></td>
                         <td class="p-4 text-center flex justify-center gap-2">
                             <button onclick="cetakSatu('${b.isbn}', '${b.judul}')" class="h-8 w-8 bg-indigo-50 text-indigo-500 rounded-full">🖨️</button>
                             <button onclick="hapusBuku('${b.isbn}')" class="h-8 w-8 bg-red-50 text-red-400 rounded-full">🗑️</button>
@@ -265,42 +231,83 @@
             document.getElementById('counterBuku').innerText = count + " Judul";
         });
 
-        function cetakSatu(id, jdl) {
-            document.getElementById('isbn').value = id;
-            document.getElementById('judul').value = jdl;
-            buatQrLangsung();
-        }
-
+        // TOOLS
         function resetForm() {
-            document.getElementById('isbn').value = "";
-            document.getElementById('judul').value = "";
-            document.getElementById('stok').value = "";
-            document.getElementById('infoStok').classList.add('hidden');
+            document.getElementById('isbn').value = ""; document.getElementById('judul').value = "";
+            document.getElementById('stok').value = ""; document.getElementById('infoStok').classList.add('hidden');
             document.getElementById('isbn').focus();
         }
 
-        function filterTabel() {
-            const input = document.getElementById("cariBuku").value.toUpperCase();
-            const tr = document.getElementById("listBuku").getElementsByTagName("tr");
-            for (let i = 0; i < tr.length; i++) {
-                const txt = tr[i].textContent || tr[i].innerText;
-                tr[i].style.display = txt.toUpperCase().indexOf(input) > -1 ? "" : "none";
-            }
+        function toggleSemua(src) {
+            const cb = document.getElementsByName('pilihBuku');
+            for(let i=0; i<cb.length; i++) cb[i].checked = src.checked;
         }
 
+        function siapkanCetakTerpilih() {
+            const area = document.getElementById('areaCetakKolektif'); area.innerHTML = "";
+            const cb = document.getElementsByName('pilihBuku'); let ada = false;
+            cb.forEach((c) => {
+                if(c.checked) {
+                    ada = true; const d = JSON.parse(c.value); const idx = Math.random().toString(36).substr(2, 9);
+                    const div = document.createElement('div'); div.className = "item-qr-cetak";
+                    div.innerHTML = `<div id="qr-pilih-${idx}" class="flex justify-center"></div><p style="font-size: 8px; font-weight: bold; margin-top: 5px;">${d.isbn}<br>${d.judul.substring(0, 15)}</p>`;
+                    area.appendChild(div);
+                    new QRCode(document.getElementById(`qr-pilih-${idx}`), { text: d.isbn, width: 70, height: 70 });
+                }
+            });
+            if(!ada) return alert("Pilih buku!");
+            setTimeout(() => { window.print(); }, 1000);
+        }
+
+        function siapkanCetakKolektif() {
+            const area = document.getElementById('areaCetakKolektif'); area.innerHTML = "";
+            if(listBukuGlobal.length === 0) return alert("Kosong!");
+            listBukuGlobal.forEach((b, i) => {
+                const div = document.createElement('div'); div.className = "item-qr-cetak";
+                div.innerHTML = `<div id="qr-k-${i}" class="flex justify-center"></div><p style="font-size: 8px; font-weight: bold; margin-top: 5px;">${b.isbn}<br>${b.judul.substring(0, 15)}</p>`;
+                area.appendChild(div);
+                new QRCode(document.getElementById(`qr-k-${i}`), { text: b.isbn, width: 70, height: 70 });
+            });
+            setTimeout(() => { window.print(); }, 1000);
+        }
+
+        function buatQrLangsung() {
+            const isbn = document.getElementById('isbn').value;
+            if(!isbn) return alert("Isi kode!");
+            const area = document.getElementById('areaCetakKolektif');
+            area.innerHTML = `<div class="item-qr-cetak"><div id="qr-single" class="flex justify-center"></div><p style="font-size: 10px; font-weight: bold; margin-top: 5px;">${isbn}</p></div>`;
+            new QRCode(document.getElementById("qr-single"), { text: isbn, width: 100, height: 100 });
+            setTimeout(() => { window.print(); }, 500);
+        }
+
+        function cetakSatu(id, jdl) { document.getElementById('isbn').value = id; buatQrLangsung(); }
+        function filterTabel() {
+            const val = document.getElementById("cariBuku").value.toUpperCase();
+            const tr = document.getElementById("listBuku").getElementsByTagName("tr");
+            for (let i = 0; i < tr.length; i++) {
+                tr[i].style.display = tr[i].innerText.toUpperCase().includes(val) ? "" : "none";
+            }
+        }
         function hapusBuku(id) { if(confirm('Hapus?')) db.ref('koleksi_buku/' + id).remove(); }
 
-        let scanner = null;
+        // SCANNER CAMERA
+        let html5Scanner = null;
         function bukaScanner() {
+            if (isExternalMode) return alert("Matikan Mode Eksternal!");
             document.getElementById('scannerArea').classList.remove('hidden');
-            scanner = new Html5Qrcode("reader");
-            scanner.start({ facingMode: "environment" }, { fps: 20, qrbox: 250 }, (txt) => {
+            html5Scanner = new Html5Qrcode("reader");
+            html5Scanner.start({ facingMode: "environment" }, { fps: 20, qrbox: 250 }, (txt) => {
                 document.getElementById('isbn').value = txt.trim();
                 cekBukuEksis(txt.trim());
                 tutupScanner();
             });
         }
-        function tutupScanner() { if(scanner) scanner.stop().then(() => document.getElementById('scannerArea').classList.add('hidden')); }
+        function tutupScanner() { 
+            if(html5Scanner) html5Scanner.stop().then(() => {
+                document.getElementById('scannerArea').classList.add('hidden');
+                html5Scanner = null;
+            });
+        }
     </script>
 </body>
 </html>
