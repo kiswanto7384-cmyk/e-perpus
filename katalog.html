@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Katalog Buku - E-Perpus</title>
+    <title>Katalog Buku - E-Perpus Optimized</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -19,7 +19,6 @@
             #areaCetakKolektif { display: grid !important; grid-template-columns: repeat(4, 1fr); gap: 15px; position: absolute; left: 0; top: 0; width: 100%; padding: 10px; }
             .item-qr-cetak { border: 1px solid #ccc; padding: 10px; text-align: center; page-break-inside: avoid; }
         }
-        /* Style Saklar Mode */
         .dot { transition: all 0.3s ease-in-out; }
         input:checked ~ .dot { transform: translateX(100%); background-color: #f97316; }
         input:checked ~ .block-bg { background-color: #ffedd5; border-color: #fdba74; }
@@ -79,7 +78,7 @@
         <div class="bg-white p-6 rounded-[2.5rem] shadow-sm mb-8 border-2 border-orange-100 space-y-4">
             <div class="relative">
                 <label class="text-[8px] font-black text-slate-400 ml-3 uppercase italic">Barcode / Kode Buku</label>
-                <input type="text" id="isbn" oninput="cekBukuEksis(this.value)" placeholder="SCAN ATAU KETIK KODE..." class="w-full p-4 bg-slate-50 rounded-2xl font-black outline-none border-2 border-transparent focus:border-orange-500 uppercase text-sm tracking-widest transition-all">
+                <input type="text" id="isbn" oninput="cekBukuEksisDebounced(this.value)" placeholder="SCAN ATAU KETIK KODE..." class="w-full p-4 bg-slate-50 rounded-2xl font-black outline-none border-2 border-transparent focus:border-orange-500 uppercase text-sm tracking-widest transition-all">
                 <div class="absolute right-2 top-[22px] flex gap-1">
                     <button onclick="buatQrLangsung()" class="bg-indigo-500 text-white px-3 rounded-xl font-black text-[9px] hover:bg-indigo-600 transition-all uppercase">Buat QR 🖼️</button>
                     <button id="btnKamera" onclick="bukaScanner()" class="bg-orange-600 text-white px-3 rounded-xl font-black text-[9px] hover:bg-orange-700 transition-all flex items-center gap-1 uppercase">📷 SCAN</button>
@@ -95,7 +94,7 @@
                     <label class="text-[8px] font-black text-slate-400 ml-3 uppercase italic">Stok Tambahan</label>
                     <div class="flex gap-2">
                         <input type="number" id="stok" placeholder="QTY" class="w-24 p-4 bg-slate-50 rounded-2xl font-black outline-none border-2 border-transparent focus:border-orange-500 text-center">
-                        <button onclick="simpanBuku()" class="flex-1 bg-emerald-500 text-white font-black rounded-2xl hover:bg-emerald-600 shadow-lg transition-all uppercase text-[10px]">Simpan 💾</button>
+                        <button id="btnSimpan" onclick="simpanBuku()" class="flex-1 bg-emerald-500 text-white font-black rounded-2xl hover:bg-emerald-600 shadow-lg transition-all uppercase text-[10px]">Simpan 💾</button>
                     </div>
                 </div>
             </div>
@@ -112,7 +111,7 @@
                     <span id="counterBuku" class="text-[9px] bg-white border border-slate-200 px-3 py-1 rounded-full font-bold text-slate-500 italic">0 Buku</span>
                 </div>
                 <div class="relative">
-                    <input type="text" id="cariBuku" onkeyup="filterTabel()" placeholder="Cari judul atau barcode..." class="w-full p-3 bg-white border border-slate-200 rounded-xl text-[10px] font-bold outline-none focus:border-orange-400 transition-all pl-9 uppercase">
+                    <input type="text" id="cariBuku" onkeyup="filterTabelDebounced()" placeholder="Cari judul atau barcode..." class="w-full p-3 bg-white border border-slate-200 rounded-xl text-[10px] font-bold outline-none focus:border-orange-400 transition-all pl-9 uppercase">
                     <span class="absolute left-3 top-3">🔍</span>
                 </div>
             </div>
@@ -140,8 +139,21 @@
         let listBukuGlobal = [];
         let isExternalMode = false;
         let scanBuffer = "";
+        let timerCek;
+        let timerFilter;
 
-        // TOGLE MODE SCANNER
+        // PENGUAT: Fungsi Debounce agar aplikasi tidak hang saat mengetik/input cepat
+        function cekBukuEksisDebounced(id) {
+            clearTimeout(timerCek);
+            timerCek = setTimeout(() => cekBukuEksis(id), 300);
+        }
+
+        function filterTabelDebounced() {
+            clearTimeout(timerFilter);
+            timerFilter = setTimeout(() => filterTabel(), 250);
+        }
+
+        // FUNGSI UTAMA (Sesuai Struktur Asli)
         function toggleScannerMode(checked) {
             isExternalMode = checked;
             const label = document.getElementById('labelMode');
@@ -166,7 +178,6 @@
             }
         }
 
-        // LISTENER EXTERNAL SCANNER
         window.addEventListener("keypress", (e) => {
             if (!isExternalMode) return;
             if (e.key === "Enter") {
@@ -179,10 +190,9 @@
             } else {
                 scanBuffer += e.key;
             }
-            setTimeout(() => { scanBuffer = ""; }, 200);
+            setTimeout(() => { scanBuffer = ""; }, 150);
         });
 
-        // CORE FUNCTIONS
         function cekBukuEksis(id) {
             if(!id) return;
             db.ref('koleksi_buku/' + id).once('value', snap => {
@@ -198,40 +208,56 @@
         }
 
         function simpanBuku() {
+            const btn = document.getElementById('btnSimpan');
             const id = document.getElementById('isbn').value.trim();
             const jdl = document.getElementById('judul').value.trim().toUpperCase();
             const inputStok = parseInt(document.getElementById('stok').value);
             if(!id || !jdl || isNaN(inputStok)) return alert("Lengkapi data!");
 
+            btn.disabled = true; // Cegah double klik
             db.ref('koleksi_buku/' + id).transaction((curr) => {
                 if (!curr) return { isbn: id, judul: jdl, stok_total: inputStok, stok_tersedia: inputStok };
                 curr.stok_total = (curr.stok_total || 0) + inputStok;
                 curr.stok_tersedia = (curr.stok_tersedia || 0) + inputStok;
                 curr.judul = jdl;
                 return curr;
-            }, (err, comm) => { if(comm) { alert("Berhasil!"); resetForm(); } });
+            }, (err, comm) => { 
+                btn.disabled = false;
+                if(comm) { resetForm(); } 
+            });
         }
 
+        // OPTIMASI: Render Tabel dengan Document Fragment (Sangat Lancar)
         db.ref('koleksi_buku').on('value', snap => {
             const tbody = document.getElementById('listBuku');
-            tbody.innerHTML = ""; listBukuGlobal = []; let count = 0;
+            const fragment = document.createDocumentFragment();
+            listBukuGlobal = []; 
+            let count = 0;
+
             snap.forEach(s => {
-                const b = s.val(); listBukuGlobal.push(b); count++;
-                tbody.innerHTML += `
-                    <tr class="border-b border-slate-50 hover:bg-slate-50">
-                        <td class="p-4 text-center"><input type="checkbox" name="pilihBuku" value='${JSON.stringify(b)}' class="w-4 h-4 rounded"></td>
-                        <td class="p-4"><span class="text-[8px] font-black text-orange-500 block">${b.isbn}</span><span class="uppercase">${b.judul}</span></td>
-                        <td class="p-4 text-center"><span class="bg-white px-2 py-1 rounded-lg border border-slate-100">${b.stok_tersedia} / ${b.stok_total}</span></td>
-                        <td class="p-4 text-center flex justify-center gap-2">
-                            <button onclick="cetakSatu('${b.isbn}', '${b.judul}')" class="h-8 w-8 bg-indigo-50 text-indigo-500 rounded-full">🖨️</button>
-                            <button onclick="hapusBuku('${b.isbn}')" class="h-8 w-8 bg-red-50 text-red-400 rounded-full">🗑️</button>
-                        </td>
-                    </tr>`;
+                const b = s.val(); 
+                listBukuGlobal.push(b); 
+                count++;
+
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-slate-50 hover:bg-slate-50";
+                tr.innerHTML = `
+                    <td class="p-4 text-center"><input type="checkbox" name="pilihBuku" value='${JSON.stringify(b)}' class="w-4 h-4 rounded"></td>
+                    <td class="p-4"><span class="text-[8px] font-black text-orange-500 block">${b.isbn}</span><span class="uppercase">${b.judul}</span></td>
+                    <td class="p-4 text-center"><span class="bg-white px-2 py-1 rounded-lg border border-slate-100">${b.stok_tersedia} / ${b.stok_total}</span></td>
+                    <td class="p-4 text-center flex justify-center gap-2">
+                        <button onclick="cetakSatu('${b.isbn}', '${b.judul}')" class="h-8 w-8 bg-indigo-50 text-indigo-500 rounded-full">🖨️</button>
+                        <button onclick="hapusBuku('${b.isbn}')" class="h-8 w-8 bg-red-50 text-red-400 rounded-full">🗑️</button>
+                    </td>
+                `;
+                fragment.appendChild(tr);
             });
+
+            tbody.innerHTML = ""; 
+            tbody.appendChild(fragment);
             document.getElementById('counterBuku').innerText = count + " Judul";
         });
 
-        // TOOLS
         function resetForm() {
             document.getElementById('isbn').value = ""; document.getElementById('judul').value = "";
             document.getElementById('stok').value = ""; document.getElementById('infoStok').classList.add('hidden');
@@ -240,9 +266,18 @@
 
         function toggleSemua(src) {
             const cb = document.getElementsByName('pilihBuku');
-            for(let i=0; i<cb.length; i++) cb[i].checked = src.checked;
+            cb.forEach(c => c.checked = src.checked);
         }
 
+        function filterTabel() {
+            const val = document.getElementById("cariBuku").value.toUpperCase();
+            const tr = document.getElementById("listBuku").getElementsByTagName("tr");
+            for (let i = 0; i < tr.length; i++) {
+                tr[i].style.display = tr[i].innerText.toUpperCase().includes(val) ? "" : "none";
+            }
+        }
+
+        // FITUR CETAK (Tidak Ada Perubahan Menu)
         function siapkanCetakTerpilih() {
             const area = document.getElementById('areaCetakKolektif'); area.innerHTML = "";
             const cb = document.getElementsByName('pilihBuku'); let ada = false;
@@ -281,16 +316,8 @@
         }
 
         function cetakSatu(id, jdl) { document.getElementById('isbn').value = id; buatQrLangsung(); }
-        function filterTabel() {
-            const val = document.getElementById("cariBuku").value.toUpperCase();
-            const tr = document.getElementById("listBuku").getElementsByTagName("tr");
-            for (let i = 0; i < tr.length; i++) {
-                tr[i].style.display = tr[i].innerText.toUpperCase().includes(val) ? "" : "none";
-            }
-        }
         function hapusBuku(id) { if(confirm('Hapus?')) db.ref('koleksi_buku/' + id).remove(); }
 
-        // SCANNER CAMERA
         let html5Scanner = null;
         function bukaScanner() {
             if (isExternalMode) return alert("Matikan Mode Eksternal!");
