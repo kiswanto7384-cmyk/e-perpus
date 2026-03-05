@@ -97,8 +97,8 @@
             </div>
 
             <div class="grid grid-cols-2 gap-4 pt-4">
-                <button id="btnPinjam" onclick="prosesTransaksi('PINJAM')" class="bg-indigo-600 text-white font-black py-5 rounded-3xl shadow-lg hover:bg-indigo-700 active:scale-95 transition-all uppercase italic text-xs tracking-widest disabled:opacity-30 disabled:cursor-not-allowed">Pinjam 📤</button>
-                <button id="btnKembali" onclick="prosesTransaksi('KEMBALI')" class="bg-emerald-500 text-white font-black py-5 rounded-3xl shadow-lg hover:bg-emerald-600 active:scale-95 transition-all uppercase italic text-xs tracking-widest disabled:opacity-30 disabled:cursor-not-allowed">Kembali 📥</button>
+                <button id="btnPinjam" onclick="prosesTransaksi('PINJAM')" class="bg-indigo-600 text-white font-black py-5 rounded-3xl shadow-lg hover:bg-indigo-700 active:scale-95 transition-all uppercase italic text-xs tracking-widest">Pinjam 📤</button>
+                <button id="btnKembali" onclick="prosesTransaksi('KEMBALI')" class="bg-emerald-500 text-white font-black py-5 rounded-3xl shadow-lg hover:bg-emerald-600 active:scale-95 transition-all uppercase italic text-xs tracking-widest">Kembali 📥</button>
             </div>
         </div>
     </div>
@@ -109,8 +109,6 @@
         const db = firebase.database();
 
         let html5QrCode = null;
-        let listenerSiswa = null;
-        let listenerBuku = null;
         let isExternalMode = false;
 
         function toggleScannerMode(checked) {
@@ -118,45 +116,24 @@
             const label = document.getElementById('labelMode');
             const indicator = document.getElementById('statusScanner');
             const dot = document.querySelector('.dot');
-            const btnSiswa = document.getElementById('btnScanSiswa');
-            const btnBuku = document.getElementById('btnScanBuku');
-
             if (checked) {
                 label.innerText = "Mode Alat Scanner (USB)";
-                label.className = "ml-3 text-[10px] font-black uppercase text-indigo-600 tracking-wider";
                 indicator.classList.remove('hidden');
                 dot.innerText = "🔌";
-                btnSiswa.style.opacity = "0.3";
-                btnBuku.style.opacity = "0.3";
                 tutupScanner(); 
                 document.getElementById('nisSiswa').focus();
             } else {
                 label.innerText = "Scan Kamera";
-                label.className = "ml-3 text-[10px] font-black uppercase text-slate-600 tracking-wider";
                 indicator.classList.add('hidden');
                 dot.innerText = "📷";
-                btnSiswa.style.opacity = "1";
-                btnBuku.style.opacity = "1";
             }
         }
 
-        // AUTO SELECT SAAT ENTER (ALAT USB)
-        document.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                const activeEl = document.activeElement;
-                if (activeEl.id === 'nisSiswa' && activeEl.value !== "") {
-                    document.getElementById('barcodeBuku').focus();
-                    document.getElementById('barcodeBuku').select(); // Blokir teks lama agar tertimpa
-                }
-            }
-        });
-
+        // Logic Cari Siswa & Buku tetap (Hanya Listener dinonaktifkan saat input kosong)
         function cariSiswa(nis) {
             const info = document.getElementById('infoSiswa');
             if(!nis) { info.classList.add('hidden'); return; }
-            if (listenerSiswa) db.ref('anggota_perpus/' + nis).off();
-            
-            listenerSiswa = db.ref('anggota_perpus/' + nis).on('value', snap => {
+            db.ref('anggota_perpus/' + nis).once('value', snap => {
                 info.classList.remove('hidden');
                 if(snap.exists()){
                     const s = snap.val();
@@ -166,7 +143,6 @@
                     document.getElementById('iconSiswa').innerText = "✅";
                 } else {
                     document.getElementById('namaSiswaDisplay').innerText = "TIDAK TERDAFTAR";
-                    document.getElementById('kelasSiswaDisplay').innerText = "Cek NISN kembali";
                     info.className = "p-5 rounded-2xl border-2 bg-red-50 border-red-100";
                     document.getElementById('iconSiswa').innerText = "❌";
                 }
@@ -176,86 +152,105 @@
         function cariBuku(barcode) {
             const info = document.getElementById('infoBuku');
             if(!barcode) { info.classList.add('hidden'); return; }
-            if (listenerBuku) db.ref('koleksi_buku/' + barcode).off();
-
-            listenerBuku = db.ref('koleksi_buku/' + barcode).on('value', snap => {
+            db.ref('koleksi_buku/' + barcode).once('value', snap => {
                 info.classList.remove('hidden');
                 if(snap.exists()){
                     const b = snap.val();
                     document.getElementById('judulBukuDisplay').innerText = b.judul;
-                    document.getElementById('stokBukuDisplay').innerText = `STOK: ${b.stok_tersedia} | RAK: ${b.lokasi || '-'}`;
+                    document.getElementById('stokBukuDisplay').innerText = `STOK: ${b.stok_tersedia} | TOTAL: ${b.stok_total}`;
                     document.getElementById('stokBukuDisplay').className = "text-[10px] font-bold uppercase " + (b.stok_tersedia > 0 ? "text-emerald-600" : "text-red-600");
                     info.className = "p-5 rounded-2xl border-2 bg-orange-50 border-orange-200";
                     document.getElementById('iconBuku').innerText = "📖";
                 } else {
                     document.getElementById('judulBukuDisplay').innerText = "TIDAK DITEMUKAN";
-                    document.getElementById('stokBukuDisplay').innerText = "Cek kode buku";
-                    document.getElementById('stokBukuDisplay').className = "text-[10px] font-bold uppercase text-red-500";
                     info.className = "p-5 rounded-2xl border-2 bg-red-50 border-red-100";
                     document.getElementById('iconBuku').innerText = "❓";
                 }
             });
         }
 
+        // --- PENGUATAN SISTEM PINJAM & KEMBALI ---
         async function prosesTransaksi(tipe) {
+            const btn = (tipe === 'PINJAM') ? document.getElementById('btnPinjam') : document.getElementById('btnKembali');
             const nis = document.getElementById('nisSiswa').value.trim();
             const barcode = document.getElementById('barcodeBuku').value.trim();
             const nama = document.getElementById('namaSiswaDisplay').innerText;
             const judul = document.getElementById('judulBukuDisplay').innerText;
             
             if(!nis || !barcode || nama.includes("TIDAK") || judul.includes("TIDAK")) {
-                return alert("Data tidak valid!");
+                return alert("⚠️ Mohon lengkapi data siswa dan buku dengan benar!");
             }
 
+            btn.disabled = true; // Mencegah double click/spam
             const tglSkrg = new Date().toLocaleString('id-ID');
             const tsSkrg = Date.now();
 
             try {
                 if (tipe === 'PINJAM') {
-                    const stokSnap = await db.ref(`koleksi_buku/${barcode}/stok_tersedia`).once('value');
-                    if(!stokSnap.exists() || stokSnap.val() <= 0) throw new Error("Stok Habis!");
+                    // 1. Cek stok via Transaction (Aman dari bentrokan data)
+                    const stokRef = db.ref(`koleksi_buku/${barcode}`);
+                    const result = await stokRef.transaction(currentData => {
+                        if (currentData && currentData.stok_tersedia > 0) {
+                            currentData.stok_tersedia = (parseInt(currentData.stok_tersedia) || 0) - 1;
+                            return currentData;
+                        }
+                        return; // Abort jika stok 0
+                    });
 
+                    if (!result.committed) throw new Error("❌ Stok buku habis atau tidak ditemukan!");
+
+                    // 2. Simpan Laporan
                     await db.ref('perpus_laporan').push({
                         idSiswa: nis, namaSiswa: nama, idBuku: barcode, judulBuku: judul,
                         status: "DIPINJAM", waktuPinjam: tglSkrg, waktuKembali: "-", timestamp: tsSkrg
                     });
                     
-                    await db.ref(`koleksi_buku/${barcode}`).transaction(b => {
-                        if(b) b.stok_tersedia = (parseInt(b.stok_tersedia) || 0) - 1;
-                        return b;
-                    });
-                    alert("✅ Berhasil Dipinjam");
-                } else {
+                    alert(`✅ BERHASIL: ${nama} meminjam ${judul}`);
+                } 
+                else { // LOGIKA KEMBALI (Pencarian Spesifik)
+                    // Cari record yang cocok: ID Siswa + ID Buku + Status DIPINJAM
                     const snap = await db.ref('perpus_laporan').orderByChild('idSiswa').equalTo(nis).once('value');
                     let targetKey = null;
+
                     snap.forEach(child => {
-                        if (child.val().idBuku === barcode && child.val().status === "DIPINJAM") targetKey = child.key;
+                        const val = child.val();
+                        // Hanya ambil yang ID Bukunya sama DAN masih DIPINJAM (mengatasi judul sama)
+                        if (val.idBuku === barcode && val.status === "DIPINJAM") {
+                            targetKey = child.key; 
+                        }
                     });
 
-                    if (!targetKey) throw new Error("Data pinjam tidak ada!");
+                    if (!targetKey) throw new Error("❌ Tidak ditemukan data peminjaman aktif untuk buku ini oleh siswa tersebut.");
 
+                    // Update Laporan & Kembalikan Stok
                     await db.ref('perpus_laporan/' + targetKey).update({
-                        status: "DIKEMBALIKAN", waktuKembali: tglSkrg, waktu_proses: tsSkrg
+                        status: "DIKEMBALIKAN", 
+                        waktuKembali: tglSkrg,
+                        timestamp_kembali: tsSkrg
                     });
 
                     await db.ref(`koleksi_buku/${barcode}`).transaction(b => {
                         if(b) b.stok_tersedia = (parseInt(b.stok_tersedia) || 0) + 1;
                         return b;
                     });
-                    alert("✅ Berhasil Dikembalikan");
+
+                    alert(`✅ BERHASIL: ${judul} telah dikembalikan oleh ${nama}`);
                 }
                 resetInput();
-            } catch (err) { alert(err.message); }
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                btn.disabled = false;
+            }
         }
 
         function resetInput() {
             document.getElementById('barcodeBuku').value = "";
             document.getElementById('infoBuku').classList.add('hidden');
             document.getElementById('barcodeBuku').focus();
-            document.getElementById('barcodeBuku').select();
         }
 
-        // SCANNER KAMERA (AUTO OVERWRITE)
+        // --- FITUR SCANNER (Tetap Seperti Semula) ---
         function bukaScanner(idTujuan) {
             if (isExternalMode) return alert("Matikan Mode Alat Scanner!");
             document.getElementById('scannerArea').classList.remove('hidden');
@@ -264,22 +259,13 @@
             html5QrCode.start({ facingMode: "environment" }, { fps: 25, qrbox: 250 }, (txt) => {
                 const hasil = txt.trim();
                 const target = document.getElementById(idTujuan);
-                
-                // LANGSUNG GANTI NILAI
                 target.value = hasil;
-                
                 if(idTujuan === 'nisSiswa') {
                     cariSiswa(hasil);
-                    // Pindah fokus ke buku agar scan buku berikutnya langsung menimpa
-                    setTimeout(() => {
-                        document.getElementById('barcodeBuku').focus();
-                        document.getElementById('barcodeBuku').select();
-                    }, 500);
-                }
-                if(idTujuan === 'barcodeBuku') {
+                    setTimeout(() => document.getElementById('barcodeBuku').focus(), 500);
+                } else {
                     cariBuku(hasil);
                 }
-                
                 tutupScanner();
             });
         }
