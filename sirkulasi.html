@@ -9,12 +9,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
-        /* Optimasi Performa: Will-change memberitahu browser untuk bersiap animasi */
         .dot { transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); will-change: transform; }
         input:checked ~ .dot { transform: translateX(1.5rem); background-color: #4f46e5; }
-        /* Menghilangkan delay klik di mobile */
         button, input { touch-action: manipulation; }
-        /* Skeleton Loading */
         .shimmer { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
         @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
     </style>
@@ -61,7 +58,6 @@
         </div>
 
         <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200 space-y-4">
-            
             <div class="relative">
                 <label class="text-[8px] font-black text-slate-400 ml-3 uppercase italic">1. Identitas Peminjam</label>
                 <input type="text" id="nisSiswa" autocomplete="off" oninput="debouncedCariSiswa(this.value.trim())" onclick="this.select()" placeholder="ID SISWA / SCAN..." 
@@ -106,7 +102,6 @@
     </div>
 
     <script>
-        // --- CONFIG & SETUP ---
         const firebaseConfig = { databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app" };
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
@@ -115,8 +110,6 @@
         let isExternalMode = false;
         let timerSiswa, timerBuku;
 
-        // --- OPTIMASI: DEBOUNCE (Mencegah Lag saat Mengetik) ---
-        // Aplikasi hanya akan mencari ke database jika user berhenti mengetik selama 300ms
         function debouncedCariSiswa(val) {
             clearTimeout(timerSiswa);
             timerSiswa = setTimeout(() => cariSiswa(val), 300);
@@ -148,12 +141,9 @@
         function cariSiswa(nis) {
             const info = document.getElementById('infoSiswa');
             if(!nis) { info.classList.add('hidden'); return; }
-            
-            // Visual Feedback: Loading
             document.getElementById('namaSiswaDisplay').innerText = "MENCARI...";
             info.classList.remove('hidden');
             info.className = "p-5 rounded-2xl border-2 bg-slate-50 border-slate-200 shimmer";
-
             db.ref('anggota_perpus/' + nis).once('value').then(snap => {
                 info.classList.remove('shimmer');
                 if(snap.exists()){
@@ -173,11 +163,9 @@
         function cariBuku(barcode) {
             const info = document.getElementById('infoBuku');
             if(!barcode) { info.classList.add('hidden'); return; }
-
             document.getElementById('judulBukuDisplay').innerText = "MENCARI...";
             info.classList.remove('hidden');
             info.className = "p-5 rounded-2xl border-2 bg-slate-50 border-slate-200 shimmer";
-
             db.ref('koleksi_buku/' + barcode).once('value').then(snap => {
                 info.classList.remove('shimmer');
                 if(snap.exists()){
@@ -204,7 +192,7 @@
             const judul = document.getElementById('judulBukuDisplay').innerText;
             
             if(!nis || !barcode || nama.includes("TIDAK") || judul.includes("TIDAK") || nama === "MENCARI...") {
-                return alert("⚠️ Mohon lengkapi data dengan benar!");
+                return alert("⚠️ Data tidak valid!");
             }
 
             btn.disabled = true;
@@ -214,6 +202,7 @@
 
             try {
                 if (tipe === 'PINJAM') {
+                    // TRANSAKSI PINJAM
                     const result = await db.ref(`koleksi_buku/${barcode}`).transaction(currentData => {
                         if (currentData && parseInt(currentData.stok_tersedia) > 0) {
                             currentData.stok_tersedia = parseInt(currentData.stok_tersedia) - 1;
@@ -232,20 +221,31 @@
                     alert(`✅ BERHASIL: ${nama} meminjam ${judul}`);
                 } 
                 else {
-                    const snap = await db.ref('perpus_laporan').orderByChild('idSiswa').equalTo(nis).once('value');
+                    // TRANSAKSI KEMBALI (Logika Diperbaiki: Filter ID Siswa + ID Buku + Status)
+                    const snap = await db.ref('perpus_laporan')
+                        .orderByChild('idSiswa')
+                        .equalTo(nis)
+                        .once('value');
+                    
                     let targetKey = null;
-
+                    // Mencari baris laporan yang ID Bukunya cocok DAN statusnya masih DIPINJAM
                     snap.forEach(child => {
                         const val = child.val();
-                        if (val.idBuku === barcode && val.status === "DIPINJAM") targetKey = child.key;
+                        if (val.idBuku === barcode && val.status === "DIPINJAM") {
+                            targetKey = child.key;
+                        }
                     });
 
-                    if (!targetKey) throw new Error("❌ Data peminjaman aktif tidak ditemukan!");
+                    if (!targetKey) throw new Error("❌ Siswa ini tidak terdeteksi meminjam buku tersebut!");
 
+                    // Update Laporan menjadi DIKEMBALIKAN
                     await db.ref('perpus_laporan/' + targetKey).update({
-                        status: "DIKEMBALIKAN", waktuKembali: tglSkrg, timestamp_kembali: tsSkrg
+                        status: "DIKEMBALIKAN", 
+                        waktuKembali: tglSkrg, 
+                        timestamp_kembali: tsSkrg
                     });
 
+                    // Kembalikan stok buku
                     await db.ref(`koleksi_buku/${barcode}`).transaction(b => {
                         if(b) b.stok_tersedia = (parseInt(b.stok_tersedia) || 0) + 1;
                         return b;
@@ -272,16 +272,12 @@
             if (isExternalMode) return alert("Matikan Mode Alat Scanner!");
             const scannerArea = document.getElementById('scannerArea');
             scannerArea.classList.remove('hidden');
-            
             if(html5QrCode) html5QrCode.stop();
-            
             html5QrCode = new Html5Qrcode("reader");
-            // Optimasi: Kurangi FPS sedikit untuk HP agar tidak panas/lag
             html5QrCode.start({ facingMode: "environment" }, { fps: 15, qrbox: {width: 200, height: 200} }, (txt) => {
                 const hasil = txt.trim();
                 const target = document.getElementById(idTujuan);
                 target.value = hasil;
-                
                 if(idTujuan === 'nisSiswa') {
                     cariSiswa(hasil);
                     setTimeout(() => document.getElementById('barcodeBuku').focus(), 300);
@@ -289,7 +285,7 @@
                     cariBuku(hasil);
                 }
                 tutupScanner();
-            }).catch(err => console.error("Scanner error:", err));
+            }).catch(err => console.error(err));
         }
 
         function tutupScanner() {
