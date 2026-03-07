@@ -2,34 +2,36 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sirkulasi Realtime - E-Perpus SDN 169</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
-        .input-active { border-color: #4f46e5 !important; background-color: #f8fafc !important; }
-        .loading-pulse { animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-        .dot { transition: all 0.3s ease-in-out; }
-        input:checked ~ .dot { transform: translateX(100%); background-color: #4f46e5; }
-        input:checked ~ .block-bg { background-color: #e0e7ff; border-color: #c7d2fe; }
+        /* Optimasi Performa: Will-change memberitahu browser untuk bersiap animasi */
+        .dot { transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); will-change: transform; }
+        input:checked ~ .dot { transform: translateX(1.5rem); background-color: #4f46e5; }
+        /* Menghilangkan delay klik di mobile */
+        button, input { touch-action: manipulation; }
+        /* Skeleton Loading */
+        .shimmer { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen pb-10">
+<body class="bg-slate-50 min-h-screen pb-10 font-sans antialiased">
 
-    <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-3 mb-6">
+    <nav class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 py-3">
         <div class="max-w-4xl mx-auto flex justify-between items-center">
-            <a href="menu-perpus.html" class="flex items-center gap-2">
+            <a href="menu-perpus.html" class="flex items-center gap-2 active:scale-95 transition-transform">
                 <span class="text-xl">🏠</span>
                 <span class="font-black text-indigo-900 italic text-sm uppercase">Menu Utama</span>
             </a>
-            <a href="pengembalian.html" class="px-3 py-2 rounded-xl text-[9px] font-black uppercase bg-indigo-100 text-indigo-600 shadow-sm hover:bg-indigo-200">📑 Log Pengembalian</a>
+            <a href="pengembalian.html" class="px-3 py-2 rounded-xl text-[9px] font-black uppercase bg-indigo-100 text-indigo-600 shadow-sm">📑 Log Pengembalian</a>
         </div>
     </nav>
 
-    <div class="max-w-2xl mx-auto px-4">
+    <div class="max-w-2xl mx-auto px-4 mt-6">
         <div class="bg-indigo-600 text-white p-6 rounded-[2.5rem] shadow-xl mb-6 border-b-8 border-indigo-800 flex justify-between items-center">
             <div>
                 <h1 class="text-xl font-black uppercase italic leading-none text-yellow-400">Kasir Sirkulasi 🔄</h1>
@@ -43,34 +45,34 @@
                 <div class="relative">
                     <input type="checkbox" id="modeScannerEksternal" class="sr-only" onchange="toggleScannerMode(this.checked)">
                     <div class="block-bg bg-slate-100 border-2 border-slate-200 w-14 h-8 rounded-full transition-all"></div>
-                    <div class="dot absolute left-1 top-1 bg-slate-400 w-6 h-6 rounded-full transition-all flex items-center justify-center text-[10px]">📷</div>
+                    <div class="dot absolute left-1 top-1 bg-slate-400 w-6 h-6 rounded-full flex items-center justify-center text-[10px]">📷</div>
                 </div>
                 <div class="ml-3 text-[10px] font-black uppercase text-slate-600 tracking-wider" id="labelMode">Scan Kamera</div>
             </label>
         </div>
 
-        <div id="statusScanner" class="mb-4 text-center hidden">
-            <span class="bg-emerald-100 text-emerald-600 text-[8px] font-black px-4 py-1 rounded-full uppercase animate-pulse">External Scanner Ready 🔌</span>
+        <div id="statusScanner" class="mb-4 text-center hidden text-emerald-600 font-black text-[9px] uppercase tracking-widest bg-emerald-50 py-2 rounded-full border border-emerald-100 mx-10 animate-pulse">
+            External Scanner Ready 🔌
         </div>
 
-        <div id="scannerArea" class="hidden mb-6 rounded-[2.5rem] overflow-hidden border-4 border-indigo-500 bg-black relative shadow-2xl">
+        <div id="scannerArea" class="hidden mb-6 rounded-[2.5rem] overflow-hidden border-4 border-indigo-500 bg-black relative shadow-2xl overflow-hidden">
             <div id="reader" style="width: 100%; min-height: 250px;"></div>
-            <button onclick="tutupScanner()" class="w-full bg-red-600 text-white py-4 font-black text-xs uppercase tracking-widest">Batal Scan ❌</button>
+            <button onclick="tutupScanner()" class="w-full bg-red-600 text-white py-4 font-black text-xs uppercase tracking-widest active:bg-red-700">Batal Scan ❌</button>
         </div>
 
         <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200 space-y-4">
             
             <div class="relative">
                 <label class="text-[8px] font-black text-slate-400 ml-3 uppercase italic">1. Identitas Peminjam</label>
-                <input type="text" id="nisSiswa" autocomplete="off" oninput="cariSiswa(this.value.trim())" onclick="this.select()" placeholder="ID SISWA / SCAN..." 
+                <input type="text" id="nisSiswa" autocomplete="off" oninput="debouncedCariSiswa(this.value.trim())" onclick="this.select()" placeholder="ID SISWA / SCAN..." 
                     class="w-full p-5 bg-slate-50 rounded-2xl font-black outline-none border-2 border-transparent focus:border-indigo-500 uppercase text-sm tracking-widest transition-all">
-                <button id="btnScanSiswa" onclick="bukaScanner('nisSiswa')" class="absolute right-2 top-[22px] bottom-2 bg-indigo-600 text-white px-4 rounded-xl font-black text-[10px] hover:bg-indigo-700 transition-all">📷 SCAN</button>
+                <button id="btnScanSiswa" onclick="bukaScanner('nisSiswa')" class="absolute right-2 top-[22px] bottom-2 bg-indigo-600 text-white px-4 rounded-xl font-black text-[10px] active:scale-95 transition-transform">📷 SCAN</button>
             </div>
 
-            <div id="infoSiswa" class="hidden p-5 rounded-2xl border-2 transition-all duration-300">
+            <div id="infoSiswa" class="hidden p-5 rounded-2xl border-2 transition-all">
                 <div class="flex items-center gap-4">
                     <div id="iconSiswa" class="text-3xl">👤</div>
-                    <div>
+                    <div class="flex-1">
                         <p id="namaSiswaDisplay" class="font-black text-indigo-900 uppercase text-sm leading-tight"></p>
                         <p id="kelasSiswaDisplay" class="text-[10px] font-bold text-slate-500 uppercase"></p>
                     </div>
@@ -81,15 +83,15 @@
 
             <div class="relative">
                 <label class="text-[8px] font-black text-slate-400 ml-3 uppercase italic">2. Barcode / Kode Buku</label>
-                <input type="text" id="barcodeBuku" autocomplete="off" oninput="cariBuku(this.value.trim())" onclick="this.select()" placeholder="KODE BUKU / SCAN..." 
+                <input type="text" id="barcodeBuku" autocomplete="off" oninput="debouncedCariBuku(this.value.trim())" onclick="this.select()" placeholder="KODE BUKU / SCAN..." 
                     class="w-full p-5 bg-slate-50 rounded-2xl font-black outline-none border-2 border-transparent focus:border-orange-500 uppercase text-sm tracking-widest transition-all">
-                <button id="btnScanBuku" onclick="bukaScanner('barcodeBuku')" class="absolute right-2 top-[22px] bottom-2 bg-orange-500 text-white px-4 rounded-xl font-black text-[10px] hover:bg-orange-600 transition-all">📷 SCAN</button>
+                <button id="btnScanBuku" onclick="bukaScanner('barcodeBuku')" class="absolute right-2 top-[22px] bottom-2 bg-orange-500 text-white px-4 rounded-xl font-black text-[10px] active:scale-95 transition-transform">📷 SCAN</button>
             </div>
 
-            <div id="infoBuku" class="hidden p-5 rounded-2xl border-2 transition-all duration-300">
+            <div id="infoBuku" class="hidden p-5 rounded-2xl border-2 transition-all">
                 <div class="flex items-center gap-4">
                     <div id="iconBuku" class="text-3xl">📖</div>
-                    <div>
+                    <div class="flex-1">
                         <p id="judulBukuDisplay" class="font-black text-slate-900 uppercase text-sm leading-tight"></p>
                         <p id="stokBukuDisplay" class="text-[10px] font-bold uppercase"></p>
                     </div>
@@ -97,19 +99,33 @@
             </div>
 
             <div class="grid grid-cols-2 gap-4 pt-4">
-                <button id="btnPinjam" onclick="prosesTransaksi('PINJAM')" class="bg-indigo-600 text-white font-black py-5 rounded-3xl shadow-lg hover:bg-indigo-700 active:scale-95 transition-all uppercase italic text-xs tracking-widest">Pinjam 📤</button>
-                <button id="btnKembali" onclick="prosesTransaksi('KEMBALI')" class="bg-emerald-500 text-white font-black py-5 rounded-3xl shadow-lg hover:bg-emerald-600 active:scale-95 transition-all uppercase italic text-xs tracking-widest">Kembali 📥</button>
+                <button id="btnPinjam" onclick="prosesTransaksi('PINJAM')" class="bg-indigo-600 text-white font-black py-5 rounded-3xl shadow-lg hover:bg-indigo-700 active:scale-95 transition-all uppercase italic text-xs tracking-widest disabled:opacity-50">Pinjam 📤</button>
+                <button id="btnKembali" onclick="prosesTransaksi('KEMBALI')" class="bg-emerald-500 text-white font-black py-5 rounded-3xl shadow-lg hover:bg-emerald-600 active:scale-95 transition-all uppercase italic text-xs tracking-widest disabled:opacity-50">Kembali 📥</button>
             </div>
         </div>
     </div>
 
     <script>
+        // --- CONFIG & SETUP ---
         const firebaseConfig = { databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app" };
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
         let html5QrCode = null;
         let isExternalMode = false;
+        let timerSiswa, timerBuku;
+
+        // --- OPTIMASI: DEBOUNCE (Mencegah Lag saat Mengetik) ---
+        // Aplikasi hanya akan mencari ke database jika user berhenti mengetik selama 300ms
+        function debouncedCariSiswa(val) {
+            clearTimeout(timerSiswa);
+            timerSiswa = setTimeout(() => cariSiswa(val), 300);
+        }
+
+        function debouncedCariBuku(val) {
+            clearTimeout(timerBuku);
+            timerBuku = setTimeout(() => cariBuku(val), 300);
+        }
 
         function toggleScannerMode(checked) {
             isExternalMode = checked;
@@ -129,12 +145,17 @@
             }
         }
 
-        // Logic Cari Siswa & Buku tetap (Hanya Listener dinonaktifkan saat input kosong)
         function cariSiswa(nis) {
             const info = document.getElementById('infoSiswa');
             if(!nis) { info.classList.add('hidden'); return; }
-            db.ref('anggota_perpus/' + nis).once('value', snap => {
-                info.classList.remove('hidden');
+            
+            // Visual Feedback: Loading
+            document.getElementById('namaSiswaDisplay').innerText = "MENCARI...";
+            info.classList.remove('hidden');
+            info.className = "p-5 rounded-2xl border-2 bg-slate-50 border-slate-200 shimmer";
+
+            db.ref('anggota_perpus/' + nis).once('value').then(snap => {
+                info.classList.remove('shimmer');
                 if(snap.exists()){
                     const s = snap.val();
                     document.getElementById('namaSiswaDisplay').innerText = s.nama;
@@ -152,13 +173,19 @@
         function cariBuku(barcode) {
             const info = document.getElementById('infoBuku');
             if(!barcode) { info.classList.add('hidden'); return; }
-            db.ref('koleksi_buku/' + barcode).once('value', snap => {
-                info.classList.remove('hidden');
+
+            document.getElementById('judulBukuDisplay').innerText = "MENCARI...";
+            info.classList.remove('hidden');
+            info.className = "p-5 rounded-2xl border-2 bg-slate-50 border-slate-200 shimmer";
+
+            db.ref('koleksi_buku/' + barcode).once('value').then(snap => {
+                info.classList.remove('shimmer');
                 if(snap.exists()){
                     const b = snap.val();
                     document.getElementById('judulBukuDisplay').innerText = b.judul;
-                    document.getElementById('stokBukuDisplay').innerText = `STOK: ${b.stok_tersedia} | TOTAL: ${b.stok_total}`;
-                    document.getElementById('stokBukuDisplay').className = "text-[10px] font-bold uppercase " + (b.stok_tersedia > 0 ? "text-emerald-600" : "text-red-600");
+                    const stok = parseInt(b.stok_tersedia) || 0;
+                    document.getElementById('stokBukuDisplay').innerText = `STOK: ${stok} | TOTAL: ${b.stok_total}`;
+                    document.getElementById('stokBukuDisplay').className = "text-[10px] font-bold uppercase " + (stok > 0 ? "text-emerald-600" : "text-red-600");
                     info.className = "p-5 rounded-2xl border-2 bg-orange-50 border-orange-200";
                     document.getElementById('iconBuku').innerText = "📖";
                 } else {
@@ -169,7 +196,6 @@
             });
         }
 
-        // --- PENGUATAN SISTEM PINJAM & KEMBALI ---
         async function prosesTransaksi(tipe) {
             const btn = (tipe === 'PINJAM') ? document.getElementById('btnPinjam') : document.getElementById('btnKembali');
             const nis = document.getElementById('nisSiswa').value.trim();
@@ -177,29 +203,27 @@
             const nama = document.getElementById('namaSiswaDisplay').innerText;
             const judul = document.getElementById('judulBukuDisplay').innerText;
             
-            if(!nis || !barcode || nama.includes("TIDAK") || judul.includes("TIDAK")) {
-                return alert("⚠️ Mohon lengkapi data siswa dan buku dengan benar!");
+            if(!nis || !barcode || nama.includes("TIDAK") || judul.includes("TIDAK") || nama === "MENCARI...") {
+                return alert("⚠️ Mohon lengkapi data dengan benar!");
             }
 
-            btn.disabled = true; // Mencegah double click/spam
+            btn.disabled = true;
+            btn.innerText = "PROSES...";
             const tglSkrg = new Date().toLocaleString('id-ID');
             const tsSkrg = Date.now();
 
             try {
                 if (tipe === 'PINJAM') {
-                    // 1. Cek stok via Transaction (Aman dari bentrokan data)
-                    const stokRef = db.ref(`koleksi_buku/${barcode}`);
-                    const result = await stokRef.transaction(currentData => {
-                        if (currentData && currentData.stok_tersedia > 0) {
-                            currentData.stok_tersedia = (parseInt(currentData.stok_tersedia) || 0) - 1;
+                    const result = await db.ref(`koleksi_buku/${barcode}`).transaction(currentData => {
+                        if (currentData && parseInt(currentData.stok_tersedia) > 0) {
+                            currentData.stok_tersedia = parseInt(currentData.stok_tersedia) - 1;
                             return currentData;
                         }
-                        return; // Abort jika stok 0
+                        return;
                     });
 
-                    if (!result.committed) throw new Error("❌ Stok buku habis atau tidak ditemukan!");
+                    if (!result.committed) throw new Error("❌ Stok buku habis!");
 
-                    // 2. Simpan Laporan
                     await db.ref('perpus_laporan').push({
                         idSiswa: nis, namaSiswa: nama, idBuku: barcode, judulBuku: judul,
                         status: "DIPINJAM", waktuPinjam: tglSkrg, waktuKembali: "-", timestamp: tsSkrg
@@ -207,26 +231,19 @@
                     
                     alert(`✅ BERHASIL: ${nama} meminjam ${judul}`);
                 } 
-                else { // LOGIKA KEMBALI (Pencarian Spesifik)
-                    // Cari record yang cocok: ID Siswa + ID Buku + Status DIPINJAM
+                else {
                     const snap = await db.ref('perpus_laporan').orderByChild('idSiswa').equalTo(nis).once('value');
                     let targetKey = null;
 
                     snap.forEach(child => {
                         const val = child.val();
-                        // Hanya ambil yang ID Bukunya sama DAN masih DIPINJAM (mengatasi judul sama)
-                        if (val.idBuku === barcode && val.status === "DIPINJAM") {
-                            targetKey = child.key; 
-                        }
+                        if (val.idBuku === barcode && val.status === "DIPINJAM") targetKey = child.key;
                     });
 
-                    if (!targetKey) throw new Error("❌ Tidak ditemukan data peminjaman aktif untuk buku ini oleh siswa tersebut.");
+                    if (!targetKey) throw new Error("❌ Data peminjaman aktif tidak ditemukan!");
 
-                    // Update Laporan & Kembalikan Stok
                     await db.ref('perpus_laporan/' + targetKey).update({
-                        status: "DIKEMBALIKAN", 
-                        waktuKembali: tglSkrg,
-                        timestamp_kembali: tsSkrg
+                        status: "DIKEMBALIKAN", waktuKembali: tglSkrg, timestamp_kembali: tsSkrg
                     });
 
                     await db.ref(`koleksi_buku/${barcode}`).transaction(b => {
@@ -234,13 +251,14 @@
                         return b;
                     });
 
-                    alert(`✅ BERHASIL: ${judul} telah dikembalikan oleh ${nama}`);
+                    alert(`✅ BERHASIL: ${judul} telah dikembalikan`);
                 }
                 resetInput();
             } catch (err) {
                 alert(err.message);
             } finally {
                 btn.disabled = false;
+                btn.innerText = (tipe === 'PINJAM') ? "Pinjam 📤" : "Kembali 📥";
             }
         }
 
@@ -250,29 +268,35 @@
             document.getElementById('barcodeBuku').focus();
         }
 
-        // --- FITUR SCANNER (Tetap Seperti Semula) ---
         function bukaScanner(idTujuan) {
             if (isExternalMode) return alert("Matikan Mode Alat Scanner!");
-            document.getElementById('scannerArea').classList.remove('hidden');
+            const scannerArea = document.getElementById('scannerArea');
+            scannerArea.classList.remove('hidden');
+            
             if(html5QrCode) html5QrCode.stop();
+            
             html5QrCode = new Html5Qrcode("reader");
-            html5QrCode.start({ facingMode: "environment" }, { fps: 25, qrbox: 250 }, (txt) => {
+            // Optimasi: Kurangi FPS sedikit untuk HP agar tidak panas/lag
+            html5QrCode.start({ facingMode: "environment" }, { fps: 15, qrbox: {width: 200, height: 200} }, (txt) => {
                 const hasil = txt.trim();
                 const target = document.getElementById(idTujuan);
                 target.value = hasil;
+                
                 if(idTujuan === 'nisSiswa') {
                     cariSiswa(hasil);
-                    setTimeout(() => document.getElementById('barcodeBuku').focus(), 500);
+                    setTimeout(() => document.getElementById('barcodeBuku').focus(), 300);
                 } else {
                     cariBuku(hasil);
                 }
                 tutupScanner();
-            });
+            }).catch(err => console.error("Scanner error:", err));
         }
 
         function tutupScanner() {
             if (html5QrCode) {
-                html5QrCode.stop().finally(() => {
+                html5QrCode.stop().then(() => {
+                    document.getElementById('scannerArea').classList.add('hidden');
+                }).catch(() => {
                     document.getElementById('scannerArea').classList.add('hidden');
                 });
             }
