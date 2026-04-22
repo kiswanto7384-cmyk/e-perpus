@@ -52,7 +52,7 @@
             External Scanner Ready 🔌
         </div>
 
-        <div id="scannerArea" class="hidden mb-6 rounded-[2.5rem] overflow-hidden border-4 border-indigo-500 bg-black relative shadow-2xl overflow-hidden">
+        <div id="scannerArea" class="hidden mb-6 rounded-[2.5rem] overflow-hidden border-4 border-indigo-500 bg-black relative shadow-2xl">
             <div id="reader" style="width: 100%; min-height: 250px;"></div>
             <button onclick="tutupScanner()" class="w-full bg-red-600 text-white py-4 font-black text-xs uppercase tracking-widest active:bg-red-700">Batal Scan ❌</button>
         </div>
@@ -105,6 +105,9 @@
         const firebaseConfig = { databaseURL: "https://e-perpus-a652c-default-rtdb.asia-southeast1.firebasedatabase.app" };
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+
+        const BATAS_HARI = 3;
+        const DENDA_PER_HARI = 1000;
 
         let html5QrCode = null;
         let isExternalMode = false;
@@ -202,7 +205,6 @@
 
             try {
                 if (tipe === 'PINJAM') {
-                    // TRANSAKSI PINJAM
                     const result = await db.ref(`koleksi_buku/${barcode}`).transaction(currentData => {
                         if (currentData && parseInt(currentData.stok_tersedia) > 0) {
                             currentData.stok_tersedia = parseInt(currentData.stok_tersedia) - 1;
@@ -210,50 +212,62 @@
                         }
                         return;
                     });
-
                     if (!result.committed) throw new Error("❌ Stok buku habis!");
 
                     await db.ref('perpus_laporan').push({
                         idSiswa: nis, namaSiswa: nama, idBuku: barcode, judulBuku: judul,
                         status: "DIPINJAM", waktuPinjam: tglSkrg, waktuKembali: "-", timestamp: tsSkrg
                     });
-                    
                     alert(`✅ BERHASIL: ${nama} meminjam ${judul}`);
                 } 
                 else {
-                    // TRANSAKSI KEMBALI (Logika Diperbaiki: Filter ID Siswa + ID Buku + Status)
-                    const snap = await db.ref('perpus_laporan')
-                        .orderByChild('idSiswa')
-                        .equalTo(nis)
-                        .once('value');
+                    // LOGIKA KEMBALI OTOMATIS (SINKRON DENGAN HALAMAN PENGEMBALIAN)
+                    const snap = await db.ref('perpus_laporan').orderByChild('idBuku').equalTo(barcode).once('value');
                     
                     let targetKey = null;
-                    // Mencari baris laporan yang ID Bukunya cocok DAN statusnya masih DIPINJAM
+                    let dataPeminjam = null;
+
                     snap.forEach(child => {
                         const val = child.val();
-                        if (val.idBuku === barcode && val.status === "DIPINJAM") {
+                        // Filter: Harus ID Siswa yang sama DAN Status sedang dipinjam
+                        if (val.idSiswa === nis && val.status === "DIPINJAM") {
                             targetKey = child.key;
+                            dataPeminjam = val;
                         }
                     });
 
                     if (!targetKey) throw new Error("❌ Siswa ini tidak terdeteksi meminjam buku tersebut!");
 
-                    // Update Laporan menjadi DIKEMBALIKAN
-                    await db.ref('perpus_laporan/' + targetKey).update({
-                        status: "DIKEMBALIKAN", 
-                        waktuKembali: tglSkrg, 
-                        timestamp_kembali: tsSkrg
-                    });
+                    // Hitung Denda Otomatis sebelum update
+                    let dendaFinal = 0;
+                    if (dataPeminjam.timestamp) {
+                        const selisihHari = Math.floor((Date.now() - dataPeminjam.timestamp) / (1000 * 60 * 60 * 24));
+                        if (selisihHari > BATAS_HARI) {
+                            dendaFinal = (selisihHari - BATAS_HARI) * DENDA_PER_HARI;
+                        }
+                    }
+
+                    // Update Laporan (Sinkron ke Halaman Pengembalian)
+                    const updates = {};
+                    updates[`perpus_laporan/${targetKey}/status`] = "DIKEMBALIKAN";
+                    updates[`perpus_laporan/${targetKey}/waktuKembali`] = tglSkrg;
+                    updates[`perpus_laporan/${targetKey}/denda_final`] = dendaFinal;
+                    updates[`perpus_laporan/${targetKey}/waktu_proses`] = tsSkrg;
+
+                    await db.ref().update(updates);
 
                     // Kembalikan stok buku
-                    await db.ref(`koleksi_buku/${barcode}`).transaction(b => {
-                        if(b) b.stok_tersedia = (parseInt(b.stok_tersedia) || 0) + 1;
-                        return b;
-                    });
+                    await db.ref(`koleksi_buku/${barcode}/stok_tersedia`).transaction(s => (parseInt(s) || 0) + 1);
 
-                    alert(`✅ BERHASIL: ${judul} telah dikembalikan`);
+                    // Potong Saldo Denda (Jika ada denda)
+                    if(dendaFinal > 0) {
+                        await db.ref(`anggota_perpus/${nis}/saldo`).transaction(s => (parseInt(s) || 0) - dendaFinal);
+                        alert(`✅ BERHASIL KEMBALI! Denda Rp ${dendaFinal.toLocaleString()} telah dipotong dari saldo.`);
+                    } else {
+                        alert(`✅ BERHASIL: ${judul} telah dikembalikan tepat waktu.`);
+                    }
                 }
-                resetInput();
+                resetForm();
             } catch (err) {
                 alert(err.message);
             } finally {
@@ -262,7 +276,7 @@
             }
         }
 
-        function resetInput() {
+        function resetForm() {
             document.getElementById('barcodeBuku').value = "";
             document.getElementById('infoBuku').classList.add('hidden');
             document.getElementById('barcodeBuku').focus();
